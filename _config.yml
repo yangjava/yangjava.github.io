@@ -7,11 +7,11 @@
 # https://learnxinyminutes.com/docs/yaml/
 
 title: 这是我的博客
-description: This is where the description of your site will go. You should change it by editing the _config.yml file. It can be as long as you like! Happy blogging... ❤
+description: Happy blogging... ❤
 github_username: jph00
 
 # Email and twitter are optional:
-email:
+email: yangjava2014@163.com
 twitter_username:
 
 # Set this to true to get LaTeX math equation support
