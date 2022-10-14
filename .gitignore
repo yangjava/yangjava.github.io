@@ -1,9 +1,7 @@
+_site/
 *.swp
-~*
+*.~vsd
+\#*\#
 *~
-_site
-.sass-cache
-.jekyll-cache
-.jekyll-metadata
-vendor
-_notebooks/.ipynb_checkpoints
+.DS_Store
+Gemfile.lock

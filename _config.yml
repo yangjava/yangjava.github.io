@@ -1,43 +1,81 @@
-# Welcome to Jekyll!
-#
-# This config file is meant for settings that affect your whole blog.
-#
-# If you need help with YAML syntax, here are some quick references for you:
-# https://learn-the-web.algonquindesign.ca/topics/markdown-yaml-cheat-sheet/#yaml
-# https://learnxinyminutes.com/docs/yaml/
+baseurl:
+url: https://chauby.github.io
+title: Chaobin
+subtitle: "The sandglass remembers the time we mislay"
+description: "Chauby's personal page"
+date_format: "ordinal"
+# timezone: Asia/Chengdu
+encoding: "utf-8"
+side_bar_repo_limit: 5
 
-title: 这是我的博客
-description: Happy blogging... ❤
-github_username: jph00
+author: Chauby
+organization: UESTC
+organization_url: http://www.uestc.edu.cn
+github_username: Chauby
+location: Chengdu, China
+email: chaubyZou@163.com
 
-# Email and twitter are optional:
-email: yangjava2014@163.com
-twitter_username:
+# Navigation
+navs:
+  -
+    href: /
+    label: Homepage
 
-# Set this to true to get LaTeX math equation support
-use_math:
+  -
+    href: /cv/
+    label: CV
 
-# Add your Google Analytics ID here if you have one and want to use it
-google_analytics:
+  -
+    href: /publications/
+    label: Publications
 
-# Everything below here can be ignored, unless you want to change the theme entirely
-theme: minima
-plugins:
-  - jekyll-feed
-  - jekyll-gist
-  - jekyll-octicons
-  - jekyll-github-metadata
+  -
+    href: /categories/
+    label: Blogs
 
-titles_from_headings:
-  enabled:     true
-  strip_title: true
-  collections: true
+  -
+    href: /wiki/
+    label: Wiki
 
-highlighter: rouge
+  # -
+  #   href: /links/
+  #   label: Links
+
+# RSS
+subscribe_rss: /feed.xml
+
+# Jekyll
 markdown: kramdown
 kramdown:
-  math_engine: katex
-  input: GFM
-  auto_ids: true
-  hard_wrap: false
-  syntax_highlighter: rouge
+    input: GFM
+highlighter: rouge
+paginate: 8
+lsi: false
+quiet: false
+excerpt_separator: "\n\n"
+permalink: /:year/:month/:day/:title/
+plugins:
+    - jekyll-github-metadata
+    - rouge
+#     - jekyll-html-pipeline
+    - jekyll-paginate
+    - jekyll-sitemap
+    - jekyll-feed
+    - jemoji
+#     - jekyll-mentions
+collections:
+    wiki:
+        output: true
+        permalink: /wiki/:path/
+
+repository: chauby/chauby.github.io
+
+# Search
+simple_jekyll_search:
+    fulltext: false # full text search enable
+    limit: 10 # limitation of the search results to show
+
+# Analytics
+google:
+    analytics_id: UA-80669434-1
+github: [metadata]
