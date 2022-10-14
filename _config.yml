@@ -1,19 +1,19 @@
 baseurl:
-url: https://chauby.github.io
-title: Chaobin
+url: https://yangjava.github.io
+title: yangjava
 subtitle: "The sandglass remembers the time we mislay"
-description: "Chauby's personal page"
+description: "yangjava's personal page"
 date_format: "ordinal"
 # timezone: Asia/Chengdu
 encoding: "utf-8"
 side_bar_repo_limit: 5
 
-author: Chauby
+author: 杨京京
 organization: UESTC
 organization_url: http://www.uestc.edu.cn
-github_username: Chauby
-location: Chengdu, China
-email: chaubyZou@163.com
+github_username: yangjava
+location: Hangzhou, China
+email: yangjava2014@163.com
 
 # Navigation
 navs:
@@ -24,10 +24,6 @@ navs:
   -
     href: /cv/
     label: CV
-
-  -
-    href: /publications/
-    label: Publications
 
   -
     href: /categories/
@@ -68,7 +64,7 @@ collections:
         output: true
         permalink: /wiki/:path/
 
-repository: chauby/chauby.github.io
+repository: yangjava/yangjava.github.io
 
 # Search
 simple_jekyll_search:
