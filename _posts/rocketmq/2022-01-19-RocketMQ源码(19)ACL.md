@@ -1,3 +1,10 @@
+---
+layout: post
+title: RocketMQ源码(19)ACL
+categories: RocketMQ
+description: RocketMQ源码(19)ACL
+keywords: RocketMQ，源码
+---
 
 # ACL
 这一节分析主要介绍了ACL的配置项、如何启用以及其源码分析,broker在启动时如何启用ACL,客户端向broker端发送请求时都有哪些ACL方面的操作以及broker收到客户端发送的请求后如何处理。

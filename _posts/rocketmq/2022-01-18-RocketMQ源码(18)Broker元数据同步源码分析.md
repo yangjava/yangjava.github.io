@@ -1,3 +1,11 @@
+---
+layout: post
+title: RocketMQ源码(18)Broker元数据同步源码分析
+categories: RocketMQ
+description: RocketMQ源码(18)Broker元数据同步源码分析
+keywords: RocketMQ，源码
+---
+
 **关键字：Broker 、元数据同步、RocketMQ 源码**
 
 Broker 有2种角色：Master和Slave。
