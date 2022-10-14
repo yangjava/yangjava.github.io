@@ -1,16 +1,16 @@
 baseurl:
 url: https://yangjava.github.io
 title: yangjava
-subtitle: "The sandglass remembers the time we mislay"
+subtitle: "Talk is cheap, show me the code"
 description: "yangjava's personal page"
 date_format: "ordinal"
-# timezone: Asia/Chengdu
+# timezone: Asia/Hangzhou
 encoding: "utf-8"
 side_bar_repo_limit: 5
 
 author: 杨京京
-organization: UESTC
-organization_url: http://www.uestc.edu.cn
+organization: oschina
+organization_url: https://my.oschina.net/u/1398304
 github_username: yangjava
 location: Hangzhou, China
 email: yangjava2014@163.com
@@ -21,9 +21,6 @@ navs:
     href: /
     label: Homepage
 
-  -
-    href: /cv/
-    label: CV
 
   -
     href: /categories/
