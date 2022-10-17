@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Kubernetes简介
+title: Kubernetes集群架构与组件
 categories: Kubernetes
 description: none
 keywords: Kubernetes,K8S
