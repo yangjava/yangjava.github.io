@@ -1,3 +1,10 @@
+---
+layout: post
+title: Spring之控制反转
+categories: Spring
+description: none
+keywords: Spring,IOC
+---
 
 > 思考
 
