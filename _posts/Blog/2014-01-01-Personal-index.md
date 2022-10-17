@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 首页概述
-categories: [Blog,index]
+categories: Blog
 description: none
 keywords: 博客
 ---
