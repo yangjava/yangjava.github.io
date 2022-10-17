@@ -10,7 +10,7 @@ keywords: RocketMQ，源码
 
 ## RocketMQ 的架构
 
-![rocketmq_architecture_1](/images/posts/rocketmq/rocketmq_architecture_1.png)
+![rocketmq_architecture_1](/images/posts/RocketMQ/rocketmq_architecture_1.png)
 
 分析NameServer时，首先看下RocketMQ的架构图，RocketMQ架构主要分为四部分，如上图所示：
 
