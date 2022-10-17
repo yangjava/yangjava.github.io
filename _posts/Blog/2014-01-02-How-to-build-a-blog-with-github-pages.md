@@ -37,7 +37,7 @@ keywords: github，博客搭建，github.io
 在自己的Github上新建一个repository，这里注意，跟普通的代码仓库不一样，我们要创建一种特殊的repository，仓库的名字只能取为你的github用户名.github.io，例如我的用户名叫chauby，那么我的这个仓库名字就只能取chauby.github.io。如下图所示，由于我已经有这样一个仓库了，所以提醒我有错误：
 
 <center>
-    <img src="/images/posts/blog/github_new_repo.png" alt="picture not found" style="zoom:100%;" />
+    <img src="/images/posts/Blog/github_new_repo.png" alt="picture not found" style="zoom:100%;" />
     <br>
 </center>
 
@@ -46,7 +46,7 @@ keywords: github，博客搭建，github.io
 仓库创建好了以后还不行，还需要点击settings来管理仓库，修改一部分的设置才可以，settings可以点击右上角：
 
 <center>
-    <img src="/images/posts/blog/github_new_repo_setting.png" alt="picture not found" style="zoom:100%;" />
+    <img src="/images/posts/Blog/github_new_repo_setting.png" alt="picture not found" style="zoom:100%;" />
     <br>
 </center>
 
@@ -93,7 +93,7 @@ gem install github-pages
 ```
 
 <center>
-    <img src="/images/posts/blog/blog-build-blog.png" alt="picture not found" style="zoom:100%;" />
+    <img src="/images/posts/Blog/blog-build-blog.png" alt="picture not found" style="zoom:100%;" />
     <br>
 </center>
 
@@ -105,7 +105,7 @@ bundle exec jekyll serve -P 5555 --watch
 
 `--watch`表示这个本地网页是实时刷新的，当你更改网页的内容时它能实时的变化，而不用不断重启和加载网页。`-P 5555`参数是指定端口号为`5555`，Jekyll默认的端口号是4000，会与福昕阅读器的端口号冲突（如果你的电脑安装了福昕阅读器），所以还是指定端口号最佳。正常情况下你能看到类似下图的启动界面了，此时在浏览器的地址栏输出 `localhost:5555`就能看到你的博客了。如果不行，请参考后文的[常见问题和解决办法](#常见问题)。
 
-![Successful](/images/posts/blog/jekyll-serve-successfully.png)
+![Successful](/images/posts/Blog/jekyll-serve-successfully.png)
 
 到这里，博客的平台搭建就算完成了，可以在本地调试完写好的博客然后再使用git推送到github的远程仓库，远程仓库的博客就更新了。
 
@@ -114,7 +114,7 @@ bundle exec jekyll serve -P 5555 --watch
 本文所采用的模板编写博客时非常简单，根目录文件路径如下图所示：
 
 <center>
-    <img src="/images/posts/blog/my_blog_folder.png" alt="picture not found" style="zoom:100%;" />
+    <img src="/images/posts/Blog/my_blog_folder.png" alt="picture not found" style="zoom:100%;" />
     <br>
 </center>
 
@@ -127,7 +127,7 @@ bundle exec jekyll serve -P 5555 --watch
 
 ### 1. 提示 Could not find gem 'tzinfo-data'
 
-![Error 1](/images/posts/blog/jekyll-err1.png)
+![Error 1](/images/posts/Blog/jekyll-err1.png)
 
 则打开终端切换到`user.github.io/`路径下，然后运行以下命令：
 
@@ -139,7 +139,7 @@ bundle install
 
 ### 2. 提示 Error: Permission denied -bind(2) for 127.0.0.1:4000
 
-![Error 2](/images/posts/blog/jekyll-err2.png)
+![Error 2](/images/posts/Blog/jekyll-err2.png)
 
 出现这个问题是提示端口号被占用，因为Jekyll默认的端口号是4000，可能与其他软件冲突（例如福昕阅读器）。所以最好的办法是运行jekyll的启动命令时指定端口号（例如5555）：
 
