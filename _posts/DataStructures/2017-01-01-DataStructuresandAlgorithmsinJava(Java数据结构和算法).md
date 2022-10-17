@@ -1,3 +1,11 @@
+---
+layout: post
+title: Java数据结构和算法
+categories: DataStructures
+description: none
+keywords: Java,DataStructures
+---
+
 # Java数据结构和算法
 
 [TOC]
