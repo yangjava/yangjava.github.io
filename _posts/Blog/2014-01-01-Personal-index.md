@@ -1,7 +1,7 @@
 ---
 layout: post
-title: 添加好友
-categories: Blog
+title: 首页概述
+categories: [Blog,index]
 description: none
 keywords: 博客
 ---
@@ -15,7 +15,7 @@ keywords: 博客
 - 2017   数据结构和算法
 - 2016   JVM
 - 2015   JDK
-- 2014   开源项目
+- 2014   开源工具
 - 2013   思想
 
 - 使用微信可以扫描下面的二维码添加好友:
