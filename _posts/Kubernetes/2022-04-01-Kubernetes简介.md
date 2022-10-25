@@ -1,3 +1,10 @@
+---
+layout: post
+categories: Kubernetes
+description: none
+keywords: Kubernetes
+---
+
 # Kubernetes
 
 **Kubernetes, also known as K8s, is an open-source system for automating deployment, scaling, and management of containerized applications.**
