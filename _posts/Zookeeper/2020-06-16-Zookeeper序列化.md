@@ -1,10 +1,10 @@
-
 ---
 layout: post
 categories: Zookeeper
 description: none
 keywords: Zookeeper
 ---
+
 ## 序列化
 
 序列化主要在zookeeper.jute包中，其中涉及的主要接口如下
