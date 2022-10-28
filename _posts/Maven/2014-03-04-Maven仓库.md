@@ -1,6 +1,7 @@
 ---
 layout: post
-categories: Git
+categories: Maven
 description: none
-keywords: Git,VCS
+keywords: Maven
 ---
+
