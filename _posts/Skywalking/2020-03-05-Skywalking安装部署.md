@@ -4,7 +4,7 @@ categories: Skywalking
 description: none
 keywords: Skywalking
 ---
-## 下载与安装
+# 下载与安装
 
 SkyWalking有两种版本，ES版本和非ES版。如果我们决定采用ElasticSearch作为存储，那么就下载es版本
 

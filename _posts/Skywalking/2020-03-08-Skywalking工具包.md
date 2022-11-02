@@ -4,13 +4,10 @@ categories: Skywalking
 description: none
 keywords: Skywalking
 ---
-## 获取追踪的ID
+# skywalking工具
+skywalking提供工具包，用于提供链路追踪各种功能。
 
-### 概述
-
-- Skywalking提供了Trace工具包，用于在追踪链路的时候进行信息的打印或者获取对应的追踪ID。
-
-### 应用示例
+## 应用依赖
 
 - 在pom.xml中增加Trace工具包的坐标：
 
@@ -21,6 +18,11 @@ keywords: Skywalking
     <version>8.3.0</version>
 </dependency>
 ```
+
+## 获取追踪的ID
+
+- Skywalking提供了Trace工具包，用于在追踪链路的时候进行信息的打印或者获取对应的追踪ID。
+
 
 - 修改Controller.java
 

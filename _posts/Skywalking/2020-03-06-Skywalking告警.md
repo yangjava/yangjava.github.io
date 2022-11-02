@@ -4,8 +4,6 @@ categories: Skywalking
 description: none
 keywords: Skywalking
 ---
-
-
 # 告警
 
 Apache SkyWalking告警是由一组规则驱动，这些规则定义在config/alarm-settings.yml文件中。
