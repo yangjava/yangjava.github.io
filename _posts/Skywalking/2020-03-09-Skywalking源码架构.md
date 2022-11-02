@@ -60,26 +60,26 @@ skywalking-v8.7.0
   该模块中只有一个 apm-network 模块，我们需要关注的是其中定义的 .proto 文件，定义 Agent 与后端 OAP 使用 gRPC 交互时的协议。
 -  apm-sniffer             # apm模块,收集链路信息，发送给 SkyWalking OAP 服务器
 
--- apm-agent 模块：其中包含了刚才使用的 SkyWalkingAgent 这个类，是整个 Agent 的入口。
--- apm-agent-core 模块：SkyWalking Agent 的核心实现都在该模块中。
--- apm-sdk-plugin 模块：SkyWalking Agent 使用了微内核+插件的架构，该模块下包含了 SkyWalking Agent 的全部插件，
--- apm-toolkit-activation 模块：apm-application-toolkit 模块的具体实现。
+    - apm-agent 模块：其中包含了刚才使用的 SkyWalkingAgent 这个类，是整个 Agent 的入口。
+    - apm-agent-core 模块：SkyWalking Agent 的核心实现都在该模块中。
+    - apm-sdk-plugin 模块：SkyWalking Agent 使用了微内核+插件的架构，该模块下包含了 SkyWalking Agent 的全部插件，
+    - apm-toolkit-activation 模块：apm-application-toolkit 模块的具体实现。
 
 -  apm-webapp             # SkyWalking Rocketbot 对应的后端。
 -  skywalking-ui          # SkyWalking Rocketbot 的前端。
 -  oap-server             # OAP后端实现
--- analyzer     负责分析数据指标项等信息
--- exporter       负责导出数据。
--- server-alarm-plugin     负责实现 SkyWalking 的告警功能。
--- server-cluster-pulgin      负责 OAP 的集群信息管理，其中提供了接入多种第三方组件的相关插件，
--- server-configuration      负责管理 OAP 的配置信息，也提供了接入多种配置管理组件的相关插件，
--- server-core SkyWalking     OAP 的核心实现都在该模块中。
--- server-library             OAP 以及 OAP 各个插件依赖的公共模块，其中提供了双队列 Buffer、请求远端的 Client 等工具类，这些模块都是对立于 SkyWalking OAP 体系之外的类库，我们可以直接拿走使用。
--- server-query-plugin       SkyWalking Rocketbot 发送的请求首先由该模块接收处理，目前该模块只支持 GraphQL 查询。
--- server-receiver-plugin    SkyWalking Agent 发送来的 Metrics、Trace 以及 Register 等写入请求都是首先由该模块接收处理的，不仅如此，该模块还提供了多种接收其他格式写入请求的插件，
--- server-starter            OAP 服务启动的入口
--- server-starter-es7         OAP 服务启动的入口，使用es7 
--- server-storage-plugin 模块：OAP 服务底层可以使用多种存储来保存 Metrics 数据以及Trace 数据，该模块中包含了接入相关存储的插件，
+    - analyzer     负责分析数据指标项等信息
+    - exporter       负责导出数据。
+    - server-alarm-plugin     负责实现 SkyWalking 的告警功能。
+    - server-cluster-pulgin      负责 OAP 的集群信息管理，其中提供了接入多种第三方组件的相关插件，
+    - server-configuration      负责管理 OAP 的配置信息，也提供了接入多种配置管理组件的相关插件，
+    - server-core SkyWalking     OAP 的核心实现都在该模块中。
+    - server-library             OAP 以及 OAP 各个插件依赖的公共模块，其中提供了双队列 Buffer、请求远端的 Client 等工具类，这些模块都是对立于 SkyWalking OAP 体系之外的类库，我们可以直接拿走使用。
+    - server-query-plugin       SkyWalking Rocketbot 发送的请求首先由该模块接收处理，目前该模块只支持 GraphQL 查询。
+    - server-receiver-plugin    SkyWalking Agent 发送来的 Metrics、Trace 以及 Register 等写入请求都是首先由该模块接收处理的，不仅如此，该模块还提供了多种接收其他格式写入请求的插件。
+- server-starter            OAP 服务启动的入口
+- server-starter-es7         OAP 服务启动的入口，使用es7 
+- server-storage-plugin 模块：OAP 服务底层可以使用多种存储来保存 Metrics 数据以及Trace 数据，该模块中包含了接入相关存储的插件，
 
 ### Skywalking执行流程
 
