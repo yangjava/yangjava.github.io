@@ -197,4 +197,6 @@ public class Application {
 | spring-boot-starter-log4j		            | 添加 Log4j 的支持。|
 | spring-boot-starter-logging		        | 使用 Spring Boot 默认的日志框架 Logback。|
 | spring-boot-starter-tomcat	            | 使用 Spring Boot 默认的 Tomcat 作为应用服务器。|
+
+
 所有这些 POM 依赖的好处在于为开发 Spring 应用提供了一个良好的基础。Spring Boot 所选择的第三方库是经过考虑的，是比较适合产品开发的选择。但是 Spring Boot 也提供了不同的选项，比如日志框架可以用 Logback 或 Log4j，应用服务器可以用 Tomcat 或 Jetty。
