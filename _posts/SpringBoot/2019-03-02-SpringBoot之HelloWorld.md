@@ -108,7 +108,7 @@ public class Application {
 [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 5 ms
 ```
 
-# 项目详情
+## 项目详情
 
 ###  项目结构
 项目结构目录整体上符合maven规范要求：
