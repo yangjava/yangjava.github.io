@@ -4,8 +4,7 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot   
-
+# SpringBoot简介   
 官网介绍：Spring Boot使创建独立的、基于生产级Spring的应用程序变得很容易，您可以“直接运行”这些应用程序。我们对Spring平台和第三方库有自己的见解，这样您就可以轻松入门了。大多数Spring引导应用程序只需要很少的Spring配置。
 
 **Spring Boot makes it easy to create stand-alone, production-grade Spring based Applications that you can "just run".**  
@@ -55,7 +54,6 @@ Spring Boot是由Pivotal团队提供的全新框架，其设计目的是用来�
 
 - 独立运行的spring项目：Spring Boot可以以jar包形式直接运行，如java-jar xxxjar优点是：节省服务器资源
 - 内嵌servlet 容器：Spring Boot 可以选择内嵌Tomcat，Jetty，这样我们无须以war包形式部署项目。
--
 - 提供starter 简化Maven 配置：在Spring Boot 项目中为我们提供了很多的spring-boot-starter-xxx的项目（我们把这个依赖可以称之为**起步依赖**），我们导入指定的这些项目的坐标，就会自动导入和该模块相关的依赖包：
   例如我们后期再使用Spring Boot 进行web开发我们就需要导入spring-boot-starter-web这个项目的依赖，导入这个依赖以后！那么Spring Boot就会自动导入web开发所需要的其他的依赖包
 - 自动配置 spring:Spring Boot 会根据在类路径中的jar包，类，为jar包里的类自动配置Bean，这样会极大减少我们要使用的配置。
@@ -65,4 +63,4 @@ Spring Boot是由Pivotal团队提供的全新框架，其设计目的是用来�
 
 
 ## 参考文章  
-[Springboot官网https://spring.io/projects/spring-boot](https://spring.io/projects/spring-boot)
+[Springboot官网  https://spring.io/projects/spring-boot](https://spring.io/projects/spring-boot)
