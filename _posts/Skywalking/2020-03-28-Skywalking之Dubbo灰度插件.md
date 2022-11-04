@@ -1168,18 +1168,3 @@ InstanceMethodInterTemplate生成的类是由BootstrapClassLoader去加载的，
 
 
 假设BootstrapClassLoader加载的由InstanceMethodInterTemplate生成的类是org.apache.skywalking.xxx.DubboInterceptor_internal，AgentClassLoader加载了日志用到的ILog和插件拦截器DubboInterceptor，AgentClassLoader的顶层父类加载器为BootstrapClassLoader，根据双亲委派模型，从下往上加载是可以拿到的，但是从上往下加载是拿不到的（BootstrapClassLoader中不能到ILog和DubboInterceptor），所以需要通过prepare()方法打通BootstrapClassLoader和AgentClassLoader
-
-小结：
-
-
-
-参考：
-
-SkyWalking8.7.0源码分析（如果你对SkyWalking Agent源码感兴趣的话，强烈建议看下该教程）
-————————————————
-版权声明：本文为CSDN博主「邋遢的流浪剑客」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
-原文链接：https://blog.csdn.net/qq_40378034/article/details/122278500
-
-
-
-https://blog.csdn.net/qq_40378034/article/details/122278500

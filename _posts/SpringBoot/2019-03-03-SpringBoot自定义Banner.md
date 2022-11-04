@@ -330,17 +330,29 @@ banner的参数设定可以通过两种形式，一种是代码的形式，一�
 使用代码的形式首先要将默认的main方法进行改造，手动创建SpringApplication对象，然后设置相应的参数。示例代码：
 
 ```java
-@FunctionalInterface
-public interface Banner {
-    void printBanner(Environment environment, Class<?> sourceClass, PrintStream out);
+public static void main(String[] args) {
 
-    public static enum Mode {
-        OFF,
-        CONSOLE,
-        LOG;
+        SpringApplication app = new SpringApplication(SpringbootBannerApplication.class);
+        app.setBannerMode(Banner.Mode.CONSOLE);
 
-        private Mode() {
+        Banner banner = new ImageBanner(new ClassPathResource("banner1.png"));
+        app.setBanner(banner);
+        app.run(args);
         }
-    }
-}
 ```
+通过配置文件设置就比较简单，直接在application.properties中进行配置，springboot已经帮我们预制好了相应的参数。
+```properties
+spring.banner.location=classpath:banner1.png
+spring.banner.image.margin=2
+spring.banner.image.height=76
+spring.banner.charset=UTF-8
+spring.banner.image.invert=false
+spring.banner.image.location=banner1.png
+spring.main.banner-mode=console
+spring.main.show-banner=true
+```
+其中spring.main.show-banner来控制是否打印banner，在新版本中不建议使用，可以使用spring.main.banner-mode代替，将其值设置为OFF即可关闭banner的打印。  
+
+引入文本banner通过spring.banner.location来指定，引入图片相关的banner需要通过spring.banner.image.location来指定路径，否则会出现乱码情况。  
+
+如果不想显示banner，可以在代码中通过setBannerMode(Banner.Mode.OFF)方法或通过参数配置spring.main.banner-mode=off来关闭banner的打印。
