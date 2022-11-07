@@ -1,9 +1,8 @@
 ---
 layout: post
-title: RocketMQ源码(3)Broker启动过程分析
 categories: RocketMQ
-description: RocketMQ源码(3)Broker启动过程分析
-keywords: RocketMQ，源码
+description: none
+keywords: RocketMQ
 ---
 
 # Broker 启动过程分析

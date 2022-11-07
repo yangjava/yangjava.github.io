@@ -1,9 +1,8 @@
 ---
 layout: post
-title: RocketMQ源码(2)NameServer分析
 categories: RocketMQ
-description: RocketMQ源码(2)NameServer分析
-keywords: RocketMQ，源码
+description: none
+keywords: RocketMQ
 ---
 
 # 路由中心NameServer

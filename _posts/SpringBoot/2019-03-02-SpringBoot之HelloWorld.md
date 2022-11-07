@@ -16,7 +16,7 @@ keywords: SpringBoot
       <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
-        <version>2.3.0.RELEASE</version>
+        <version>2.5.4</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

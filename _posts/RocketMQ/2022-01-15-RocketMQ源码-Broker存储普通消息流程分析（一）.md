@@ -1,9 +1,8 @@
 ---
 layout: post
-title: RocketMQ源码(8)Broker存储普通消息流程分析（一）
 categories: RocketMQ
-description: RocketMQ源码(8)Broker存储普通消息流程分析（一）
-keywords: RocketMQ，源码
+description: none
+keywords: RocketMQ
 ---
 
 分析broker存储消息之前，首先回顾下生产者发送消息的流程。生产者首先通过查询缓存在本地的topic，如果本地没有缓存topic信息，就从Name Server服务器上拉取topic信息，默认轮询的方式选择topic的消息队列获取Broker Name，通过Broker Name找到Broker 地址，就知道消息应该发送到哪个Broker服务器了，RocketMQ的消息只能发送到Master Broker 服务器上。然后通过Broker 地址查找生产者与Broker服务器的channel（连接），如果连接不存在，则创建，将消息通过连接用不同的发送方式（单向、同步、异步）发送出去，这就是消息发送的大致流程了，如果想要深入消息发送流程分析，可以参考这边文章：《[RocketMQ源码之生产者发送消息分析](https://zhuanlan.zhihu.com/p/428767107)》。

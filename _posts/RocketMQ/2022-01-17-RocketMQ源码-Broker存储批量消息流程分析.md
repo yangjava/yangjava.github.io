@@ -1,9 +1,8 @@
 ---
 layout: post
-title: RocketMQ源码(10)Broker存储批量消息流程分析
 categories: RocketMQ
-description: RocketMQ源码(10)Broker存储批量消息流程分析
-keywords: RocketMQ，源码
+description: none
+keywords: RocketMQ
 ---
 
 我们已经在《[RocketMQ源码之Broker存储普通消息流程分析（一）](https://zhuanlan.zhihu.com/p/432299956)》和《[RocketMQ源码之Broker存储消息流程分析（二）](https://zhuanlan.zhihu.com/p/433140646)》分析了普通消息是如何存储的，这篇文章则分析如何存储批量消息。

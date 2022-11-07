@@ -1,9 +1,8 @@
 ---
 layout: post
-title: RocketMQ源码(9)Broker存储普通消息流程分析（二）
 categories: RocketMQ
-description: RocketMQ源码(9)Broker存储普通消息流程分析（二）
-keywords: RocketMQ，源码
+description: none
+keywords: RocketMQ
 ---
 
 在《[RocketMQ源码之Broker存储普通消息流程分析（一）](https://zhuanlan.zhihu.com/p/432299956)》这篇文章中，分析了Broker服务器是如何处理接收到请求和响应的。

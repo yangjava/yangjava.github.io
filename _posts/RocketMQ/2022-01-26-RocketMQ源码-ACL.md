@@ -1,9 +1,8 @@
 ---
 layout: post
-title: RocketMQ源码(19)ACL
 categories: RocketMQ
-description: RocketMQ源码(19)ACL
-keywords: RocketMQ，源码
+description: none
+keywords: RocketMQ
 ---
 
 # ACL
