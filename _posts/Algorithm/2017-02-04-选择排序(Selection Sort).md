@@ -4,7 +4,9 @@ categories: Algorithm
 description: none
 keywords: Algorithm
 ---
+# 选择算法
 
+千锤万凿出深山，烈火焚烧若等闲。粉身碎骨全不怕，要留清白在人间。——于谦《石灰吟》
 
 ### 选择排序
 

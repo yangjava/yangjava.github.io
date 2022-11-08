@@ -4,6 +4,9 @@ categories: Algorithm
 description: none
 keywords: Algorithm
 ---
+# 冒泡算法（(Bubble Sort)）
+
+劝君莫惜金缕衣，劝君惜取少年时。花开堪折直须折，莫待无花空折枝。。——杜秋娘《金缕衣》
 
 ### 冒泡排序
 
