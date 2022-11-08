@@ -6,4 +6,4 @@ description: none
 keywords: Kubernetes,K8S
 ---
 # Kubernetes组件
-力学如力耕，勤惰尔自知。——刘过《书院》
+力学如力耕，勤惰尔自知。——刘过《书院》    

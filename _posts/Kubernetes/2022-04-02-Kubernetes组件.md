@@ -6,7 +6,7 @@ description: none
 keywords: Kubernetes,K8S
 ---
 # Kubernetes组件
-试玉要烧三日满，辨材须待七年期。——白居易《放言五首·其三》    
+试玉要烧三日满，辨材须待七年期。——白居易《放言五首·其三》        
 一个 Kubernetes 集群一般包含一个 Master 节点和多个 Node 节点，一个节点可以看成是一台物理机或虚拟机。
 
 ## Master

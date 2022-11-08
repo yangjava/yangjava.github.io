@@ -6,4 +6,4 @@ description: none
 keywords: Kubernetes,K8S
 ---
 # Kubernetes组件
-昨日邻家乞新火，晓窗分与读书灯。——王禹偁《清明》
+昨日邻家乞新火，晓窗分与读书灯。——王禹偁《清明》    
