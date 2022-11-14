@@ -4,8 +4,9 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot之HelloWorld  
-  纸上得来终觉浅，绝知此事要躬行。下面就让我们开始一个Hello World级别的项目吧。
+# SpringBoot之HelloWorld 
+天生我材必有用，干金散尽还复来。  ——李白《将进酒》
+下面就让我们开始一个Hello World级别的项目吧。
 
 ## Maven依赖
 

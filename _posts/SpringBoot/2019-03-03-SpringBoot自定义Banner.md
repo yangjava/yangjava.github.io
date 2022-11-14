@@ -5,6 +5,7 @@ description: none
 keywords: SpringBoot
 ---
 # SpringBoot自定义Banner
+行到水穷处，坐看云起时。  ——王维《终南别业》
 SpringBoot项目在启动的时候，我们可以看到控制台会打印一个Spring的图案，这个是SpringBoot默认的Banner图标。  
 
 ```
