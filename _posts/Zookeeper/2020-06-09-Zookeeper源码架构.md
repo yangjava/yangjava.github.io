@@ -4,20 +4,41 @@ categories: Zookeeper
 description: none
 keywords: Zookeeper
 ---
+# Zookeeper源码环境搭建
 
-# Zookeeper源码解析
-
-关于Zookeeper，目前普遍的应用场景基本作为服务注册中心，用于服务发现。但这只是Zookeeper的一个的功能，根据Apache的官方概述：“The Apache ZooKeeper system for distributed coordination is a high-performance service for building distributed applications.” Zookeeper是一个用于构建分布式应用的coordination, 并且为高性能的。Zookeeper借助于它内部的节点结构和监听机制，能用于很大部分的分布式协调场景。配置管理、命名服务、分布式锁、服务发现和发布订阅等等，这些场景在Zookeeper中基本使用其节点的“变更+通知”来实现。因为分布式的重点在于通信，通信的作用也就是协调。
-
-Zookeeper由Java语言编写（也有C语言的Api实现）,对于其原理，算是Paxos算法的实现，包含了Leader、Follower、Proposal等角色和选举之类的一些概念，但于Paxos还有一些不同（ZAB协议）。
+Zookeeper是开源高可用的分布式协同服务，在分布式系统中应用广泛，代码量适中，适合阅读和学习。首先从开发环境的搭建开始介绍。
 
 ## 源码获取
 
-Zookeeper源码可以从Github（https://github.com/apache/zookeeper）上clone下来；
+Zookeeper源码Github地址[https://github.com/apache/zookeeper](https://github.com/apache/zookeeper)
 
-也可从Zookeeper官网（Apache）https://zookeeper.apache.org/releases.html上获取。
+Zookeeper官网（Apache）[https://zookeeper.apache.org/releases.html](https://zookeeper.apache.org/releases.html)
 
 Zookeeper在3.5.5之前使用的是Ant构建，在3.5.5开始使用的是Maven构建。
+
+## 工程结构
+
+| 名称                                  | 说明                                                         |
+|-------------------------------------| ------------------------------------------------------------ |
+| bin	                                | 包含访问zookeeper服务器和命令行客户端的脚本 |
+| conf                                | 启动zookeeper默认的配置文件目录    |
+| zookeeper-assembly		            | 基础服务打包目录。                                      |
+| zookeeper-client		                 | 客户端，目前只支持c。                                          |
+| zookeeper-compatibility-tests		 | 兼容性测试目录。         |
+| zookeeper-contrib                   | 附加的功能,比如zookeeper可视化客户端工具。                                         |
+| zookeeper-doc		                  | zookeeper文档。|
+| zookeeper-it		                      | 供fatjar使用，进行系统测试依赖的类|
+| zookeeper-jute		                    | zookeeper序列化组件。|
+| zookeeper-metrics-providers			      | 监控相关，目前支持普罗米修斯 prometheus。|
+| zookeeper-recipes			                | zookeeper提供的一些功能例子，包括选举election，lock和queue。|
+| zookeeper-server		                  | zookeeper服务端。|
+
+## 启动服务
+
+
+
+
+
 
 ## 概要框架设计
 
