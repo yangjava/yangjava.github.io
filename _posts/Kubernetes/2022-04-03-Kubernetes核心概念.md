@@ -1,9 +1,8 @@
 ---
 layout: post
-title: Kubernetes集群架构与组件
 categories: Kubernetes
 description: none
-keywords: Kubernetes,K8S
+keywords: Kubernetes
 ---
 # Kubernetes核心概念
 故山归梦喜，先入读书堂。——李商隐《归墅》    

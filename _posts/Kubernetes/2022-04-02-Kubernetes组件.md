@@ -1,9 +1,8 @@
 ---
 layout: post
-title: Kubernetes集群架构与组件
 categories: Kubernetes
 description: none
-keywords: Kubernetes,K8S
+keywords: Kubernetes
 ---
 # Kubernetes组件
 试玉要烧三日满，辨材须待七年期。——白居易《放言五首·其三》        

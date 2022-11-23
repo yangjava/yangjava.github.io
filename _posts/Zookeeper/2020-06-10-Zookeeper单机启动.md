@@ -4,7 +4,109 @@ categories: Zookeeper
 description: none
 keywords: Zookeeper
 ---
+# Zookeeper源码-单机启动
+Zookeeper启动时，首先解析配置文件，根据配置文件选择启动单例还是集群模式。单机环境启动入口为ZooKeeperServerMain类。
 
+
+## 入口方法
+
+```java
+org.apache.zookeeper.server.quorum.QuorumPeerMain#main
+```
+
+## 初始化QuorumPeerMain
+
+初始化**QuorumPeerMain**对象，并执行initializeAndRun方法。
+
+```
+public static void main(String[] args) {
+        QuorumPeerMain main = new QuorumPeerMain();
+        try {
+            main.initializeAndRun(args);
+        } catch (IllegalArgumentException e) {
+            LOG.error("Invalid arguments, exiting abnormally", e);
+            LOG.info(USAGE);
+            System.err.println(USAGE);
+            System.exit(2);
+        } catch (ConfigException e) {
+            LOG.error("Invalid config, exiting abnormally", e);
+            System.err.println("Invalid config, exiting abnormally");
+            System.exit(2);
+        } catch (DatadirException e) {
+            LOG.error("Unable to access datadir, exiting abnormally", e);
+            System.err.println("Unable to access datadir, exiting abnormally");
+            System.exit(3);
+        } catch (AdminServerException e) {
+            LOG.error("Unable to start AdminServer, exiting abnormally", e);
+            System.err.println("Unable to start AdminServer, exiting abnormally");
+            System.exit(4);
+        } catch (Exception e) {
+            LOG.error("Unexpected exception, exiting abnormally", e);
+            System.exit(1);
+        }
+        LOG.info("Exiting normally");
+        System.exit(0);
+    }
+```
+QuorumPeerMain.main()接受至少一个参数，一般就一个参数，参数为zoo.cfg文件路径。main方法中没有很多的业务代码，实例化了一个QuorumPeerMain 对象，然后main.initializeAndRun(args)进行了实例化
+
+
+```
+protected void initializeAndRun(String[] args)
+        throws ConfigException, IOException, AdminServerException
+    {
+        QuorumPeerConfig config = new QuorumPeerConfig();
+        if (args.length == 1) {
+            config.parse(args[0]);
+        }
+
+        // Start and schedule the the purge task
+        DatadirCleanupManager purgeMgr = new DatadirCleanupManager(config
+                .getDataDir(), config.getDataLogDir(), config
+                .getSnapRetainCount(), config.getPurgeInterval());
+        purgeMgr.start();
+
+        // 当配置了多节点信息，return quorumVerifier!=null && (!standaloneEnabled || quorumVerifier.getVotingMembers().size() > 1);
+        if (args.length == 1 && config.isDistributed()) {
+            // 集群模式
+            runFromConfig(config);
+        } else {
+            LOG.warn("Either no config or no quorum defined in config, running "
+                    + " in standalone mode");
+            // there is only server in the quorum -- run as standalone
+            // 单机模式
+            ZooKeeperServerMain.main(args);
+        }
+    }
+```
+
+## 配置解析
+
+配置解析主要有两种情况
+1. 使用配置文件
+2. 使用命令行参数
+
+### 配置文件解析
+
+配置文件解析通过`org.apache.zookeeper.server.quorum.QuorumPeerConfig#parse`解析
+
+```java
+
+```
+
+
+
+1. 先校验文件的合法性
+2. 配置文件是使用Java的properties形式写的，所以可以通过Properties.load来解析
+3. 将解析出来的key、value赋值给对应的配置
+
+
+
+### 命令行参数解析
+
+
+
+## 
 
 ## Zookeeper启动
 
@@ -17,6 +119,9 @@ zookeeper一般使用命令工具启动，启动主要就是初始化所有组�
 ```java
 org.apache.zookeeper.server.quorum.QuorumPeerMain#main
 ```
+
+
+
 
 不管单机还是集群都是使用`zkServer.sh`这个脚本来启动，只是参数不同，所以main方法入口也是一样的。所以这个入口方法主要是根据不同的入参判断是集群启动还是单机启动。
 
@@ -54,6 +159,11 @@ Zookeeper启动时，首先解析配置文件，根据配置文件选择启动�
 2. 使用命令行参数
 
 #### 使用配置文件
+
+
+
+
+
 
 使用配置文件的时候是使用`QuorumPeerConfig`来解析配置的
 
