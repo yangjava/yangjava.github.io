@@ -5,7 +5,7 @@ description: none
 keywords: RocketMQ
 ---
 
-# 生产者启动过程分析
+# RocketMQ源码-生产者启动
 
 RockerMQ生产者与Name Server、Broker进行通信，从Name Server获取到Broker相关的信息，这个过程称为Broker发现，获取到Broker相关信息，就可以与Broker服务进行通信了，发送信息给Broker，Broker将接收到生产者发送的信息保存起来。我们先看看RocketMQ是如何发送信息的：
 

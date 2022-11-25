@@ -4,12 +4,13 @@ categories: RocketMQ
 description: none
 keywords: RocketMQ
 ---
+# RocketMQ源码-Broker处理消息请求
 
-分析broker存储消息之前，首先回顾下生产者发送消息的流程。生产者首先通过查询缓存在本地的topic，如果本地没有缓存topic信息，就从Name Server服务器上拉取topic信息，默认轮询的方式选择topic的消息队列获取Broker Name，通过Broker Name找到Broker 地址，就知道消息应该发送到哪个Broker服务器了，RocketMQ的消息只能发送到Master Broker 服务器上。然后通过Broker 地址查找生产者与Broker服务器的channel（连接），如果连接不存在，则创建，将消息通过连接用不同的发送方式（单向、同步、异步）发送出去，这就是消息发送的大致流程了，如果想要深入消息发送流程分析，可以参考这边文章：《[RocketMQ源码之生产者发送消息分析](https://zhuanlan.zhihu.com/p/428767107)》。
+分析broker存储消息之前，首先回顾下生产者发送消息的流程。生产者首先通过查询缓存在本地的topic，如果本地没有缓存topic信息，就从Name Server服务器上拉取topic信息，默认轮询的方式选择topic的消息队列获取Broker Name，通过Broker Name找到Broker 地址，就知道消息应该发送到哪个Broker服务器了，RocketMQ的消息只能发送到Master Broker 服务器上。然后通过Broker 地址查找生产者与Broker服务器的channel（连接），如果连接不存在，则创建，将消息通过连接用不同的发送方式（单向、同步、异步）发送出去，这就是消息发送的大致流程了。
 
 那消息发送到Broker服务器以后，Broker服务器是如何处理请求的？Broker是如何存储消息的呢？
 
-Broker在启动的时候会注册各种处理器（Broker启动流程分析可以参考这篇文章：《[RocketMQ源码之Broker分析](https://zhuanlan.zhihu.com/p/427602828)》），当Broker服务器接收到请求时，先将请求进行处理，根据不同请求码将请求交给不同的处理器处理。Broker服务器会将消息交给SendMessageProcessor处理器，SendMessageProcessor接收到消息以后交给processRequest方法处理。这篇文章先分析下Broker如何处理请求，下一篇文章再分析Broker服务如何存储普通消息。
+Broker在启动的时候会注册各种处理器，当Broker服务器接收到请求时，先将请求进行处理，根据不同请求码将请求交给不同的处理器处理。Broker服务器会将消息交给SendMessageProcessor处理器，SendMessageProcessor接收到消息以后交给processRequest方法处理。这篇文章先分析下Broker如何处理请求，下一篇文章再分析Broker服务如何存储普通消息。
 
 ### Broker处理请求以及响应
 

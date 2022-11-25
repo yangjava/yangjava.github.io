@@ -4,10 +4,9 @@ categories: RocketMQ
 description: none
 keywords: RocketMQ
 ---
+# RocketMQ源码-Broker存储普通消息
 
-在《[RocketMQ源码之Broker存储普通消息流程分析（一）](https://zhuanlan.zhihu.com/p/432299956)》这篇文章中，分析了Broker服务器是如何处理接收到请求和响应的。
-
-在这一篇，我们来聊聊Broker接收到消息请求以后，是如何将消息存储起来的？
+Broker接收到消息请求以后，是如何将消息存储起来的？
 
 Broker服务器接收到消息请求时，通过请求码找到SendMessageProcessor处理器，SendMessageProcessor处理器通过processRequest方法处理消息请求：
 
@@ -91,14 +90,14 @@ protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
 }
 ```
 
-在《[RocketMQ源码之生产者发送消息分析](https://zhuanlan.zhihu.com/p/428767107)》这篇文章讲过，RocketMQ为了发送消息的性能，除了会对消息进行压缩外，还会将消息转换为更轻量的消息进行发送，更轻量的消息就是将原来的消息换成不利于阅读的格式，这样消息就会变得更小，传输起来就更快。
+RocketMQ为了发送消息的性能，除了会对消息进行压缩外，还会将消息转换为更轻量的消息进行发送，更轻量的消息就是将原来的消息换成不利于阅读的格式，这样消息就会变得更小，传输起来就更快。
 
 parseRequestHeader方法通过请求码的类型解析消息发送请求头，如果是批量消息和更轻量的消息，就解析为SendMessageRequestHeaderV2，否则就解析为SendMessageRequestHeader。
 
 接下来，我们将会从下面两个方面继续分析消除的存储：
 
 - 单笔消息存储处理
-- 批量消息存储处理（在下一篇文章中分析）
+- 批量消息存储处理
 
 ### 单笔消息存储处理
 

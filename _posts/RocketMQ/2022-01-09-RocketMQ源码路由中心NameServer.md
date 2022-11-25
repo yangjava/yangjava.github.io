@@ -5,11 +5,11 @@ description: none
 keywords: RocketMQ
 ---
 
-# 路由中心NameServer
+# RocketMQ源码-路由中心NameServer
 
 ## RocketMQ 的架构
 
-![rocketmq_architecture_1](/images/posts/RocketMQ/rocketmq_architecture_1.png)
+RocketMQ架构设计[RocketMQ架构设计](https://rocketmq.apache.org/assets/images/RocketMQ%E9%83%A8%E7%BD%B2%E6%9E%B6%E6%9E%84-ee0435f80da5faecf47bca69b1c831cb.png)
 
 分析NameServer时，首先看下RocketMQ的架构图，RocketMQ架构主要分为四部分，如上图所示：
 
@@ -60,7 +60,7 @@ namesrv
 ├─NamesrvStartup                  	# Namesrv启动器
 ```
 
-NameServer 启动类： org.apache.rocketmq.namesrv.NamesrvStartup 。NamesrvStartup类就是Name Server服务器启动的启动类。
+NameServer 启动类： `org.apache.rocketmq.namesrv.NamesrvStartup`。NamesrvStartup类就是NameServer服务器启动的启动类。
 
 ```java
 //代码位置：org.apache.rocketmq.namesrv.NamesrvStartup

@@ -5,7 +5,7 @@ description: none
 keywords: RocketMQ
 ---
 
-# Broker 启动过程分析
+# RocketMQ源码-Broker启动
 
 Broker 主要负责消息的存储，投递和查询以及保证服务的高可用。Broker负责接收生产者发送的消息并存储、同时为消费者消费消息提供支持。为了实现这些功能，Broker包含几个重要的子模块：
 

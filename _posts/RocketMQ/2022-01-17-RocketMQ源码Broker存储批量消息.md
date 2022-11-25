@@ -4,8 +4,9 @@ categories: RocketMQ
 description: none
 keywords: RocketMQ
 ---
+# RocketMQ源码-Broker存储批量消息
 
-我们已经在《[RocketMQ源码之Broker存储普通消息流程分析（一）](https://zhuanlan.zhihu.com/p/432299956)》和《[RocketMQ源码之Broker存储消息流程分析（二）](https://zhuanlan.zhihu.com/p/433140646)》分析了普通消息是如何存储的，这篇文章则分析如何存储批量消息。
+我们来分析如何存储批量消息。
 
 当Broker收到消息时，将会将消息交给SendMessageProcessor处理器处理，SendMessageProcessor处理器根据消息的类型处理不同的消息，当消息是批量消息时，会将消息交给asyncSendBatchMessage方法进行处理。asyncSendBatchMessage方法如下：
 
