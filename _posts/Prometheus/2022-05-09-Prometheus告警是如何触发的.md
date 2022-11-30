@@ -4,13 +4,7 @@ categories: Prometheus
 description: none
 keywords: Prometheus
 ---
-
 # Prometheus一条告警是怎么触发的
-
-**文章来源：爱可生云数据库**
-**作者：张沈波**
-
-大纲
 
 **第一节：监控采集、计算和告警**
 **第二节：告警分组、抑制、静默**
