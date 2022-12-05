@@ -5,17 +5,16 @@ description: none
 keywords: Kubernetes
 ---
 # Kubernetes源码JobController
-
 job 在 kubernetes 中主要用来处理离线任务，job 直接管理 pod，可以创建一个或多个 pod 并会确保指定数量的 pod 运行完成。kubernetes 中有两种类型的 job，分别为 cronjob 和 batchjob，cronjob 类似于定时任务是定时触发的而 batchjob 创建后会直接运行，本文主要介绍 batchjob，下面简称为 job。
 
 
-### job 的基本功能
+## job的基本功能
 
-#### 创建
+使用job可以创建一个pod或者多个pod去执行任务。Job会记录已完成的Pod的数量，但完成的数量达到指定值时，这个Job就完成了。
 
-job 的一个示例如下所示：
+## job的yaml
 
-```
+```yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -38,39 +37,49 @@ spec:
       restartPolicy: Never
 ```
 
+### ttlSecondsAfterFinished
 
+当设置了ttlSecondsAfterFinished参数，job完成或者失败后都会在ttlSecondsAfterFinished所设置的时间后被清理。
+- 假设ttlSecondsAfterFinished 设置成30。在job完成或者失败后30s，job就会被自动清除，包括job和job所管理的pod都会被清除
+- 没有设置，job和job所管理的pod会一直存在，不管是失败还是成功。
+- 有些k8s的版本ttlSecondsAfterFinished是不生效的，建议使用1.20以上的版本
+- 开启 TTLAfterFinished 。找到安装kubernetes的kube-apiserver.yaml和kube-controller-manager.yaml，增加开启TTLAfterFinished的设置。
+- 每次 job 执行完成后手动回收非常麻烦，k8s 在 v1.12 版本中加入了 `TTLAfterFinished` feature-gates，启用该特性后会启动一个 TTL 控制器，在创建 job 时指定后可在 job 运行完成后自动回收相关联的 pod，如上文中的 yaml 所示，创建 job 时指定了 `ttlSecondsAfterFinished: 60`，job 在执行完成后停留 60s 会被自动回收， 若 `ttlSecondsAfterFinished` 设置为 0 则表示在 job 执行完成后立刻回收。当 TTL 控制器清理 job 时，它将级联删除 job，即 pod 和 job 一起被删除。不过该特性截止目前还是 Alpha 版本，请谨慎使用。
+
+### activeDeadlineSeconds
+
+Job的超时时间，一旦一个Job运行的时间超出该限制，则Job失败，所有运行中的Pod会被结束并删除。
+- 该配置指定的值必须是个正整数。不指定则不会超时。
+- 经过我实验，job pod并不会自动删除，所以如果希望超时后pod会自动删除还是设置一下ttlSecondsAfterFinished
+
+### backoffLimit
+
+允许执行失败的次数，默认值是6，0表示不允许执行失败。
+- 如果Pod是restartPolicy为Nerver，则失败后会创建新的Pod，如果是OnFailed，则会重启Pod，不管是哪种情况，只要Pod失败一次就计算一次，而不是等整个Pod失败后再计算一个。
+- 当失败的次数达到该限制时，整个Job随即结束，所有正在运行中的Pod都会被删除。
+- 经过我实验，job pod并不会自动删除，所以如果希望超时后pod会自动删除还是设置一下ttlSecondsAfterFinished
+
+### parallelism
+
+并行运行的Pod的个数，默认值为1，假如设置为3，就会同时开启3个pod去执行任务
+
+### completions
+
+完成该Job需要执行成功的Pod数。指定需要完成的数量，默认值为1，假设设置为3，需要有三个pod成功完成任务，这个job才算是完成
 
 #### 扩缩容
 
 job 不支持运行时扩缩容，job 在创建后其 `spec.completions` 字段也不支持修改。
 
-
-
-#### 删除
+### 删除
 
 通常系统中已执行完成的 job 不再需要，将它们保留在系统中会占用一定的资源，需要进行回收，pod 在执行完任务后会进入到 `Completed` 状态，删除 job 也会清除其创建的 pod。
 
-```
-$ kubectl get pod
-pi-gdrwr                            0/1     Completed   0          10m
-pi-rjphf                            0/1     Completed   0          10m
-
-$ kubectl delete job pi
-```
-
-
-
-##### 自动清理机制
-
-每次 job 执行完成后手动回收非常麻烦，k8s 在 v1.12 版本中加入了 `TTLAfterFinished` feature-gates，启用该特性后会启动一个 TTL 控制器，在创建 job 时指定后可在 job 运行完成后自动回收相关联的 pod，如上文中的 yaml 所示，创建 job 时指定了 `ttlSecondsAfterFinished: 60`，job 在执行完成后停留 60s 会被自动回收， 若 `ttlSecondsAfterFinished` 设置为 0 则表示在 job 执行完成后立刻回收。当 TTL 控制器清理 job 时，它将级联删除 job，即 pod 和 job 一起被删除。不过该特性截止目前还是 Alpha 版本，请谨慎使用。
-
-
-
-### job controller 源码分析
+## job controller 源码分析
 
 > kubernetes 版本：v1.16
 
-在上节介绍了 job 的基本操作后，本节会继续深入源码了解其背后的设计与实现。
+继续深入`job`源码了解其背后的设计与实现。
 
 #### startJobController
 
@@ -473,7 +482,7 @@ func (jm *JobController) manageJob(activePods []*v1.Pod, succeeded int32, job *b
 
 
 
-### 总结
+## 总结
 
 以上就是 jobController 源码中主要的逻辑，从上文分析可以看到 jobController 的代码比较清晰，若看过前面写的几个 controller 分析会发现每个 controller 在功能实现上有很多类似的地方。
 

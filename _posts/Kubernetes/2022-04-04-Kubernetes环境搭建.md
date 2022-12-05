@@ -116,6 +116,14 @@ kubectl cluster-info --context kind-k8s-1
 Have a nice day! 👋
 ```
 至此已得到一个可用的k8s集群了：
+
+使用 kind create cluster 安装，是没有指定任何配置文件的安装方式。从安装打印出的输出来看，分为4步：
+
+- 查看本地上是否存在一个基础的安装镜像，默认是 kindest/node:v1.13.4，这个镜像里面包含了需要安装的所有东西，包括了 kubectl、kubeadm、kubelet 二进制文件，以及安装对应版本 k8s 所需要的镜像，都以 tar 压缩包的形式放在镜像内的一个路径下
+- 准备你的 node，这里就是做一些启动容器、解压镜像之类的工作
+- 生成对应的 kubeadm 的配置，之后通过 kubeadm 安装，安装之后还会做另外的一些操作，比如像我刚才仅安装单节点的集群，会帮你删掉 master 节点上的污点，否则对于没有容忍的 pod 无法部署。
+- 启动完毕
+
 ```text
 kubectl get nodes
 NAME                  STATUS   ROLES    AGE   VERSION
@@ -127,6 +135,25 @@ docker images
 REPOSITORY     TAG       IMAGE ID       CREATED         SIZE
 kindest/node   <none>    de6eb7df13da   2 years ago     1.25GB
 ```
+查看当前集群的运行情况
+```text
+kubectl get po -n kube-system
+
+NAME                                          READY   STATUS    RESTARTS   AGE
+coredns-66bff467f8-448sh                      1/1     Running   5          8d
+coredns-66bff467f8-47vlh                      1/1     Running   4          8d
+etcd-k8s-1-control-plane                      1/1     Running   3          8d
+kindnet-4fghr                                 1/1     Running   5          8d
+kube-apiserver-k8s-1-control-plane            1/1     Running   3          8d
+kube-controller-manager-k8s-1-control-plane   1/1     Running   3          8d
+kube-proxy-rb5bn                              1/1     Running   3          8d
+kube-scheduler-k8s-1-control-plane            1/1     Running   3          8d
+```
+默认方式启动的节点类型是 control-plane 类型，包含了所有的组件。包括2 * coredns、etcd、api-server、controller-manager、kube-proxy、sheduler。
+
+基本上，kind 的所有秘密都在那个基础镜像中。下面是基础容器内部的 /kind 目录，在 bin 目录下安装了 kubelet、kubeadm、kubectl 这些二进制文件，images 下面是镜像的 tar 包，kind 在启动基础镜像后会执行一遍 docker load 操作将这些 tar 包导入。
+
+
 ### 创建过程
 
 先获取镜像kindest/node:v1.21.1，然后启动容器myk8s-01-control-plane，启动的容器就是这个k8s集群的master节点，显然此集群只有master节点。
