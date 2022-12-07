@@ -4,19 +4,19 @@ categories: RocketMQ
 description: none
 keywords: RocketMQ
 ---
-
 # RocketMQ源码-Broker启动
+Broker 主要负责消息的存储，投递和查询以及保证服务的高可用。Broker负责接收生产者发送的消息并存储、同时为消费者消费消息提供支持。
 
-Broker 主要负责消息的存储，投递和查询以及保证服务的高可用。Broker负责接收生产者发送的消息并存储、同时为消费者消费消息提供支持。为了实现这些功能，Broker包含几个重要的子模块：
-
+为了实现这些功能，Broker包含几个重要的子模块：
 - 通信模块：负责处理来自客户端（生产者、消费者）的请求。
 - 客户端管理模块:负责管理客户端（生产者、消费者）和维护消费者的Topic订阅信息。
 - 存储模块：提供存储消息和查询消息的能力，方便Broker将消息存储到硬盘。
 - 高可用服务（HA Service）：提供数据冗余的能力，保证数据存储到多个服务器上，将Master Broker的数据同步到Slavew Broker上。
 - 索引服务（Index service）：对投递到Broker的消息建立索引，提供快速查询消息的能力。
 
-Broker在启动的过程中，将进行初始化的工作，初始化上述模块所需要的配置和资源等。在Name Server启动以后，Broker就可以开始启动了，启动过程将所有路由信息都注册到Name server服务器上，生产者就可以发送消息到Broker，消费者也可以从Broker消费消息。接下来就来看看Broker的具体启动过程。
+Broker在启动的过程中，将进行初始化的工作，初始化上述模块所需要的配置和资源等。在NameServer启动以后，Broker就可以开始启动了，启动过程将所有路由信息都注册到Nameserver服务器上，生产者就可以发送消息到Broker，消费者也可以从Broker消费消息。
 
+接下来就来看看Broker的具体启动过程。
 ```java
 //源代码位置：org.apache.rocketmq.broker.BrokerStartup#main
 public class BrokerStartup {
