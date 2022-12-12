@@ -4,18 +4,405 @@ categories: Zookeeper
 description: none
 keywords: Zookeeper
 ---
+# Zookeeper源码启动流程
+从源码的角度分析ZooKeeper集群启动过程以及关于集群的一些知识。
 
-## 选举
+## 启动入口
+我们需要首先找到zookeeper集群启动入口,然后研究Zookeeper集群是如何启动的？Zookeeper集群启动入口是`org.apache.zookeeper.server.quorum.QuorumPeerMain#main`
+```java
+    public static void main(String[] args) {
+        // 初始化 QuorumPeerMain
+        QuorumPeerMain main = new QuorumPeerMain();
+        try {
+            // 加载配置文件并执行
+            main.initializeAndRun(args);
+        } catch (IllegalArgumentException e) {
+            LOG.error("Invalid arguments, exiting abnormally", e);
+            LOG.info(USAGE);
+            System.err.println(USAGE);
+            System.exit(2);
+        } catch (ConfigException e) {
+            LOG.error("Invalid config, exiting abnormally", e);
+            System.err.println("Invalid config, exiting abnormally");
+            System.exit(2);
+        } catch (DatadirException e) {
+            LOG.error("Unable to access datadir, exiting abnormally", e);
+            System.err.println("Unable to access datadir, exiting abnormally");
+            System.exit(3);
+        } catch (AdminServerException e) {
+            LOG.error("Unable to start AdminServer, exiting abnormally", e);
+            System.err.println("Unable to start AdminServer, exiting abnormally");
+            System.exit(4);
+        } catch (Exception e) {
+            LOG.error("Unexpected exception, exiting abnormally", e);
+            System.exit(1);
+        }
+        LOG.info("Exiting normally");
+        System.exit(0);
+    }
+```
+QuorumPeerMain的Main方法很简单，就是初始化QuorumPeerMain对象，然后加载配置文件并执行。
 
-Zookeeper中分为Leader、Follower和Observer三个角色，各个角色扮演不同的业务功能。在Leader故障之后，Follower也会选举一个新的Leader。
+## 加载配置文件并执行
+通过initializeAndRun方法，我们可以了解到Zookeeper初始化配置文件并执行，无论是Zookeeper单机版还是集群模式都是调用的同一个方法。那么Zookeeper是如何判断是单机还是集群的呢？
+```java
+    protected void initializeAndRun(String[] args)
+        throws ConfigException, IOException, AdminServerException
+    {   
+        // 初始化配置
+        QuorumPeerConfig config = new QuorumPeerConfig();
+        // 如果参数格式是1个，解析参数
+        if (args.length == 1) {
+            config.parse(args[0]);
+        }
 
-Leader为集群中的主节点，一个集群只有一个Leader，Leader负责处理Zookeeper的事物操作，也就是更改Zookeeper数据和状态的操作。
+        // Start and schedule the the purge task
+        DatadirCleanupManager purgeMgr = new DatadirCleanupManager(config
+                .getDataDir(), config.getDataLogDir(), config
+                .getSnapRetainCount(), config.getPurgeInterval());
+        purgeMgr.start();
 
-Follower负责处理客户端的读请求和参与选举。同时负责处理Leader发出的事物提交请求，也就是提议（proposal）。
+        if (args.length == 1 && config.isDistributed()) {
+            runFromConfig(config);
+        } else {
+            LOG.warn("Either no config or no quorum defined in config, running "
+                    + " in standalone mode");
+            // there is only server in the quorum -- run as standalone
+            ZooKeeperServerMain.main(args);
+        }
+    }
+```
+`initializeAndRun`方法执行逻辑如下：
+1. 初始化配置配置类QuorumPeerConfig，初始化默认是单机模式
+2. 如果传入的参数是1个，例如`\zookeeper\conf\zoo_sample1.cfg`,说明传入的参数是配置文件。那么解析配置文件判断当前配置是单机还是集群。
+3. 启动清理文件的线程
+4. 通过判断，说明是集群启动还是单机启动。最后进行程序的启动，因为Zookeeper分为单机和集群模式，所以分为两种不同的启动方式，当zoo.cfg文件中配置了standaloneEnabled=true为单机模式，如果配置server.0,server.1......集群节点，则为集群模式.
+如果是集群启动模式，执行`runFromConfig(config);`,单机执行`ZooKeeperServerMain.main(args);`
 
-Observer用于提高Zookeeper集群的读取的吞吐量，响应读请求，和Follower不同的是，Observser不参与Leader的选举，也不响应Leader发出的proposal。
 
-有角色就有选举。有选举就有策略，Zookeeper中的选举策略有三种实现：包括了LeaderElection、AuthFastLeaderElection和FastLeaderElection，目前Zookeeper默认采用FastLeaderElection，前两个选举算法已经设置为@Deprecated；
+## 加载配置文件并判断单机还是集群
+加载配置文件调用`org.apache.zookeeper.server.quorum.QuorumPeerConfig#parse`。
+```java
+    public void parse(String path) throws ConfigException {
+        LOG.info("Reading configuration from: " + path);
+
+        try {
+            File configFile = (new VerifyingFileFactory.Builder(LOG)
+                .warnForRelativePath()
+                .failForNonExistingPath()
+                .build()).create(path);
+
+            Properties cfg = new Properties();
+            FileInputStream in = new FileInputStream(configFile);
+            try {
+                cfg.load(in);
+                configFileStr = path;
+            } finally {
+                in.close();
+            }
+
+            parseProperties(cfg);
+        } catch (IOException e) {
+            throw new ConfigException("Error processing " + path, e);
+        } catch (IllegalArgumentException e) {
+            throw new ConfigException("Error processing " + path, e);
+        }
+
+        if (dynamicConfigFileStr!=null) {
+           try {
+               Properties dynamicCfg = new Properties();
+               FileInputStream inConfig = new FileInputStream(dynamicConfigFileStr);
+               try {
+                   dynamicCfg.load(inConfig);
+                   if (dynamicCfg.getProperty("version") != null) {
+                       throw new ConfigException("dynamic file shouldn't have version inside");
+                   }
+
+                   String version = getVersionFromFilename(dynamicConfigFileStr);
+                   // If there isn't any version associated with the filename,
+                   // the default version is 0.
+                   if (version != null) {
+                       dynamicCfg.setProperty("version", version);
+                   }
+               } finally {
+                   inConfig.close();
+               }
+               setupQuorumPeerConfig(dynamicCfg, false);
+
+           } catch (IOException e) {
+               throw new ConfigException("Error processing " + dynamicConfigFileStr, e);
+           } catch (IllegalArgumentException e) {
+               throw new ConfigException("Error processing " + dynamicConfigFileStr, e);
+           }
+        ......
+```
+解析配置文件流程如下：
+1. 加载配置文件绝对路径，通过`load`解析为Properties,将参数解析为Key，Value方式。
+2. 
+
+## 解析配置Properties
+当dynamicConfigFileStr为空，解析配置信息
+```java
+ public void parseProperties(Properties zkProp)
+    throws IOException, ConfigException {
+        ......
+        if (dynamicConfigFileStr == null) {
+        setupQuorumPeerConfig(zkProp, true);
+        if (isDistributed() && isReconfigEnabled()) {
+        // we don't backup static config for standalone mode.
+        // we also don't backup if reconfig feature is disabled.
+        backupOldConfig();
+        }
+        }
+        }
+```
+解析方法如下
+```java
+    void setupQuorumPeerConfig(Properties prop, boolean configBackwardCompatibilityMode)
+            throws IOException, ConfigException {
+        quorumVerifier = parseDynamicConfig(prop, electionAlg, true, configBackwardCompatibilityMode);
+        setupMyId();
+        setupClientPort();
+        setupPeerType();
+        checkValidity();
+    }
+```
+1. 解析配置文件，获取quorumVerifier对象
+2. 设置MyId
+3. 解析ClietPort
+4. 解析PeerType
+
+判断是否是分布式集群方法
+```java
+    public boolean isDistributed() {
+        return quorumVerifier!=null && (!standaloneEnabled || quorumVerifier.getVotingMembers().size() > 1);
+    }
+```
+解析集群如果配置server.0,server.1......集群节点，则为集群模式.将数据设置到`private Map<Long, QuorumServer> allMembers = new HashMap<Long, QuorumServer>();`中，
+其中Key为myid，值为Zookeeper服务器节点QuorumServer
+```java
+  public QuorumMaj(Properties props) throws ConfigException {
+        for (Entry<Object, Object> entry : props.entrySet()) {
+            String key = entry.getKey().toString();
+            String value = entry.getValue().toString();
+
+            if (key.startsWith("server.")) {
+                int dot = key.indexOf('.');
+                long sid = Long.parseLong(key.substring(dot + 1));
+                QuorumServer qs = new QuorumServer(sid, value);
+                allMembers.put(Long.valueOf(sid), qs);
+                if (qs.type == LearnerType.PARTICIPANT)
+                    votingMembers.put(Long.valueOf(sid), qs);
+                else {
+                    observingMembers.put(Long.valueOf(sid), qs);
+                }
+            } else if (key.equals("version")) {
+                version = Long.parseLong(value, 16);
+            }
+        }
+        half = votingMembers.size() / 2;
+    }
+```
+
+## Zookeeper server节点信息
+Zookeeper主程序QuorumPeerMain加载配置文件后，配置容器对象QuorumPeerConfig中持有一个QuorumVerifier对象，该对象会存储其他Zookeeper server节点信息，如果zoo.cfg中配置了server.*节点信息，会实例化一个QuorumVeriferi对象。
+```java
+public interface QuorumVerifier {
+    long getWeight(long id);
+    boolean containsQuorum(Set<Long> set);
+    long getVersion();
+    void setVersion(long ver);
+    Map<Long, QuorumServer> getAllMembers();
+    Map<Long, QuorumServer> getVotingMembers();
+    Map<Long, QuorumServer> getObservingMembers();
+    boolean equals(Object o);
+    String toString();
+}
+```
+实现类
+```java
+public class QuorumMaj implements QuorumVerifier {
+    private Map<Long, QuorumServer> allMembers = new HashMap<Long, QuorumServer>();
+    private HashMap<Long, QuorumServer> votingMembers = new HashMap<Long, QuorumServer>();
+    private HashMap<Long, QuorumServer> observingMembers = new HashMap<Long, QuorumServer>();
+    private long version = 0;
+    //这里的half就是过半提交一个比较关键的点
+    private int half;
+    
+}
+```
+其中AllMembers = VotingMembers + ObservingMembers,
+AllMembers代表所有的Zookeeper节点。VotingMembers表示参与选举的节点。half代表参与投票的半数。
+```java
+// 该构造方法遍历配置文件的server.N,将连接信息构造成一个QuorumServer对象，放到allMembers、votingMembers集合中
+    public QuorumMaj(Properties props) throws ConfigException {
+        for (Entry<Object, Object> entry : props.entrySet()) {
+        String key = entry.getKey().toString();
+        String value = entry.getValue().toString();
+        //QuorumServer格式: server.1=127.0.0.1:2888:3888
+        if (key.startsWith("server.")) {
+        int dot = key.indexOf('.');
+        long sid = Long.parseLong(key.substring(dot + 1));
+        QuorumServer qs = new QuorumServer(sid, value);
+        allMembers.put(Long.valueOf(sid), qs);
+        // qs.type 默认就是LearnerType.PARTICIPANT
+        if (qs.type == LearnerType.PARTICIPANT)
+        votingMembers.put(Long.valueOf(sid), qs);
+        else {
+        observingMembers.put(Long.valueOf(sid), qs);
+        }
+        } else if (key.equals("version")) {
+        version = Long.parseLong(value, 16);
+        }
+        }
+        // 过半提交 half = votingMembers.size() / 2;
+        half = votingMembers.size() / 2;
+        }
+```
+如果quorumVerifier.getVotingMembers().size() > 1 则使用集群模式启动。调用runFromConfig(QuorumPeerConfig config)，同时会实例化ServerCnxnFactory 对象，初始化一个QuorumPeer对象。
+
+## 初始化QuorumPeer对象
+```java
+
+    public void runFromConfig(QuorumPeerConfig config)
+            throws IOException, AdminServerException
+    {
+      try {
+            // 注册jmx
+          ManagedUtil.registerLog4jMBeans();
+      } catch (JMException e) {
+          LOG.warn("Unable to register log4j JMX control", e);
+      }
+
+      LOG.info("Starting quorum peer, myid=" + config.getServerId());
+      try {
+          ServerCnxnFactory cnxnFactory = null;
+          ServerCnxnFactory secureCnxnFactory = null;
+            // 配置客户端连接端口
+          if (config.getClientPortAddress() != null) {
+            //默认使用NIOServerCnxnFactory连接工厂,反射创建实例
+              cnxnFactory = ServerCnxnFactory.createFactory();
+              cnxnFactory.configure(config.getClientPortAddress(),
+                      config.getMaxClientCnxns(),
+                      false);
+          }
+            // 配置安全连接端口
+          if (config.getSecureClientPortAddress() != null) {
+              secureCnxnFactory = ServerCnxnFactory.createFactory();
+              secureCnxnFactory.configure(config.getSecureClientPortAddress(),
+                      config.getMaxClientCnxns(),
+                      true);
+          }
+            // 设置数据和快照操作
+          quorumPeer = getQuorumPeer();
+            //FileTxnSnapLog用于操作快照和事务日志的帮助类
+          quorumPeer.setTxnFactory(new FileTxnSnapLog(
+                      config.getDataLogDir(),
+                      config.getDataDir()));
+          quorumPeer.enableLocalSessions(config.areLocalSessionsEnabled());
+          quorumPeer.enableLocalSessionsUpgrading(
+              config.isLocalSessionsUpgradingEnabled());
+          //quorumPeer.setQuorumPeers(config.getAllMembers());
+            // 选举类型
+            //配置文件没设置的话,默认就是3 
+          quorumPeer.setElectionType(config.getElectionAlg());
+            // server Id
+          quorumPeer.setMyid(config.getServerId());
+          quorumPeer.setTickTime(config.getTickTime());
+          quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
+          quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());
+          quorumPeer.setInitLimit(config.getInitLimit());
+          quorumPeer.setSyncLimit(config.getSyncLimit());
+          quorumPeer.setConfigFileName(config.getConfigFilename());
+            // 设置zk的节点数据库
+          quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
+          quorumPeer.setQuorumVerifier(config.getQuorumVerifier(), false);
+          if (config.getLastSeenQuorumVerifier()!=null) {
+              quorumPeer.setLastSeenQuorumVerifier(config.getLastSeenQuorumVerifier(), false);
+          }
+            // 初始化zk数据库
+          quorumPeer.initConfigInZKDatabase();
+          quorumPeer.setCnxnFactory(cnxnFactory);
+          quorumPeer.setSecureCnxnFactory(secureCnxnFactory);
+          quorumPeer.setSslQuorum(config.isSslQuorum());
+          quorumPeer.setUsePortUnification(config.shouldUsePortUnification());
+            //设置peerType:若配置文件未指定，成员变量默认值是LearnerType.PARTICIPANT
+          quorumPeer.setLearnerType(config.getPeerType());
+          quorumPeer.setSyncEnabled(config.getSyncEnabled());
+          quorumPeer.setQuorumListenOnAllIPs(config.getQuorumListenOnAllIPs());
+          if (config.sslQuorumReloadCertFiles) {
+              quorumPeer.getX509Util().enableCertFileReloading();
+          }
+
+          // sets quorum sasl authentication configurations
+          quorumPeer.setQuorumSaslEnabled(config.quorumEnableSasl);
+          if(quorumPeer.isQuorumSaslAuthEnabled()){
+              quorumPeer.setQuorumServerSaslRequired(config.quorumServerRequireSasl);
+              quorumPeer.setQuorumLearnerSaslRequired(config.quorumLearnerRequireSasl);
+              quorumPeer.setQuorumServicePrincipal(config.quorumServicePrincipal);
+              quorumPeer.setQuorumServerLoginContext(config.quorumServerLoginContext);
+              quorumPeer.setQuorumLearnerLoginContext(config.quorumLearnerLoginContext);
+          }
+          quorumPeer.setQuorumCnxnThreadsSize(config.quorumCnxnThreadsSize);
+            // 初始化当前zk服务节点的配置
+          quorumPeer.initialize();
+            //启动
+          quorumPeer.start();
+          quorumPeer.join();
+      } catch (InterruptedException e) {
+          // warn, but generally this is ok
+          LOG.warn("Quorum Peer interrupted", e);
+      }
+    }
+```
+QuorumPeer为一个Zookeeper节点， QuorumPeer 为一个线程类，代表一个Zookeeper服务线程，最终会启动该线程。
+runFromConfig方法中设置了一些列属性。包括选举类型、server Id、节点数据库等信息。最后通过quorumPeer.start();启动Zookeeper节点。
+
+quorumPeer.start(); Zookeeper会首先加载本地磁盘数据，如果之前存在一些Zookeeper信息，则会加载到Zookeeper内存数据库中。通过FileTxnSnapLog中的loadDatabse();
+
+## 启动Zookeeper服务器并选举
+```
+public synchronized void start() {
+
+        // 校验serverid如果不在peer列表中，抛异常
+        if (!getView().containsKey(myid)) {
+            throw new RuntimeException("My id " + myid + " not in the peer list");
+         }
+
+        // 加载zk数据库:载入之前持久化的一些信息
+        loadDataBase();
+
+        // 启动连接服务端
+        startServerCnxnFactory();
+        try {
+            adminServer.start();
+        } catch (AdminServerException e) {
+            LOG.warn("Problem starting AdminServer", e);
+            System.out.println(e);
+        }
+        // 启动之后马上进行选举，主要是创建选举必须的环境，比如：启动相关线程
+        startLeaderElection();
+
+        // 执行选举逻辑
+        super.start();
+    }
+```
+
+加载数据完之后同单机模式启动一样，会调用ServerCnxnFactory.start(),启动NIOServerCnxnFactory服务和Zookeeper服务，最后启动AdminServer服务。
+
+与单机模式启动不同的是，集群会在启动之后马上进行选举操作，会在配置的所有Zookeeper server节点中选举出一个leader角色。startLeaderElection();
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### **Zookeeper节点信息**
 
