@@ -79,3 +79,15 @@ NotifyDiscovery manager，用于告警服务的动态发现
 
 Web handler，查询的接口和页面的提供
 ```
+
+## 架构分析
+
+任何应用服务想要接入 Prometheus，都需要提供 HTTP 接口（通常是 x.x.x.x/metrics 地址），并暴露 Prometheus 格式的监控数据。Prometheus Server 通过 HTTP 协议周期性抓取监控目标的监控数据、打时间戳、存储到本地。Prometheus 提供了 Client 库帮助开发人员在自己的应用中集成符合 Prometheus 格式标准的监控指标。
+
+而对于不适合直接在代码中集成 Client 库的场景，比如应用来自第三方、不是由自己维护，应用不支持 HTTP 协议，那就需要为这些场景单独编写 Exporter 程序。Exporter 作为代理，把监控数据暴露出来。比如 Mysql Exporter，Node Exporter。
+
+Prometheus 将采集到的数据存储在本地时序数据库中，但缺少数据副本。这也是 Prometheus 自身在数据持久化方面做的不足的地方。但这些存储问题都有其他的解决方案，Prometheus 支持 remote write 方式将数据存储到远端。
+
+Prometheus 支持通过 Kubernetes、静态文本、Consul、DNS 等多种服务发现方式来获取抓取目标（targets）。最后，用户编写 PromQL 语句查询数据并进行可视化。
+
+
