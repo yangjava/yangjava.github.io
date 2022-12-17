@@ -4,8 +4,7 @@ categories: RocketMQ
 description: none
 keywords: RocketMQ
 ---
-
-## 消费者启动流程分析
+# RocketMQ源码消费者启动流程分析
 
 RocketMQ有push（推模式）和pull（拉模式）两种消费消息的模式，推模式就是Broker主动将消息推送给消费者，拉模式就是消费者主动从Broker将消息拉回来。推模式本质实际上是拉模式，是基于拉模式实现的。这篇文章分析推模式的消息者启动流程，实际上拉模式的消费者启动流程大致也是一样的。我们先看看消费者消费消息的案例。
 

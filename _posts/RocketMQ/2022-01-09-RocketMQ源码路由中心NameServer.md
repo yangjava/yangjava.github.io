@@ -4,8 +4,8 @@ categories: RocketMQ
 description: none
 keywords: RocketMQ
 ---
-
-# RocketMQ源码-路由中心NameServer
+# RocketMQ源码路由中心NameServer
+NameServer 是整个RocketMQ 的“大脑”，主要负责RocketMQ 路由管理、服务注册及服务发现的机制。
 
 ## RocketMQ 的架构
 
@@ -23,7 +23,7 @@ RocketMQ架构设计[RocketMQ架构设计](https://rocketmq.apache.org/assets/im
 
 ## NameServer
 
-本章主要介绍RocketMQ 路由管理、服务注册及服务发现的机制， NameServer 是整个RocketMQ 的“大脑” 。相信大家对“服务发现”这个词语并不陌生，分布式服务SOA 架构体系中会有服务注册中心，分布式服务SOA 的注册中心主要提供服务调用的解析服务，指引服务调用方（消费者）找到“远方”的服务提供者，完成网络通信，那么RocketMQ 的路由中心存储的是什么数据呢？作为一款高性能的消息中间件，如何避免NameServer 的单点故障，提供高可用性呢？让我们带着上述疑问， 一起进入RocketMQ NameServer 的精彩世界中来。
+本章主要介绍RocketMQ 路由管理、服务注册及服务发现的机制，  。相信大家对“服务发现”这个词语并不陌生，分布式服务SOA 架构体系中会有服务注册中心，分布式服务SOA 的注册中心主要提供服务调用的解析服务，指引服务调用方（消费者）找到“远方”的服务提供者，完成网络通信，那么RocketMQ 的路由中心存储的是什么数据呢？作为一款高性能的消息中间件，如何避免NameServer 的单点故障，提供高可用性呢？让我们带着上述疑问， 一起进入RocketMQ NameServer 的精彩世界中来。
 
 ## NameServer 架构设计
 

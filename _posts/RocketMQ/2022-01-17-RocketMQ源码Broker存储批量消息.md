@@ -4,7 +4,7 @@ categories: RocketMQ
 description: none
 keywords: RocketMQ
 ---
-# RocketMQ源码-Broker存储批量消息
+# RocketMQ源码Broker存储批量消息
 
 我们来分析如何存储批量消息。
 

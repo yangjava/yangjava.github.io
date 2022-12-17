@@ -4,7 +4,7 @@ categories: RocketMQ
 description: none
 keywords: RocketMQ
 ---
-# RocketMQ源码-Broker存储普通消息
+# RocketMQ源码Broker存储普通消息
 
 Broker接收到消息请求以后，是如何将消息存储起来的？
 

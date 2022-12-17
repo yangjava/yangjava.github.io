@@ -4,9 +4,7 @@ categories: Skywalking
 description: none
 keywords: Skywalking
 ---
-
 # Skywalking简介
-
 **官网介绍**：分布式系统的应用程序性能监控工具，专为微服务、云原生和基于容器的 (Kubernetes) 架构而设计。
 
 ```
