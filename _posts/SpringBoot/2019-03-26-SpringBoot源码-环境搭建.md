@@ -35,6 +35,29 @@ spring-boot-project目录是在Spring Boot 2.0版本发布后新增的目录层�
 | spring-boot-tools		            | Spring Boot工具支持模块，包含Ant、Maven、Gradle等构建工具。|
 
 
+### spring-boot 模块
+spring-boot 模块，Spring Boot 的核心实现
+- 在 org.springframework.boot.SpringApplication 类，提供了大量的静态方法，可以很容易运行一个独立的 Spring 应用程序。
+- 在 org.springframework.boot.web 包下实现，带有可选容器的嵌入式 Web 应用程序（Tomcat、Jetty、Undertow） 的支持。
+
+### spring-boot-autoconfigure 模块
+spring-boot-autoconfigure 可以根据类路径的内容，自动配置大部分常用应用程序。通过使用 org.springframework.boot.autoconfigure.@EnableAutoConfiguration 注解，会触发 Spring 上下文的自动配置。
+
+### spring-boot-actuator 模块
+spring-boot-actuator 模块。正如其模块的英文 actuator ，它完全是一个用于暴露应用自身信息的模块
+- 提供了一个监控和管理生产环境的模块，可以使用 http、jmx、ssh、telnet 等管理和监控应用。
+- 审计（Auditing）、 健康（health）、数据采集（metrics gathering）会自动加入到应用里面。
+
+### spring-boot-actuator-autoconfigure 模块
+它提供了 spring-boot-actuator 的自动配置功能。
+
+### spring-boot-starters 模块
+spring-boot-starters 模块，它不存在任何的代码，而是提供我们常用框架的 Starter 模块。例如：
+
+- spring-boot-starter-web 模块，提供了对 Spring MVC 的 Starter 模块。
+- spring-boot-starter-data-jpa 模块，提供了对 Spring Data JPA 的 Starter 模块。
+而每个 Starter 模块，里面只存在一个 pom 文件，这是为什么呢？简单来说，Spring Boot 可以根据项目中是否存在指定类，并且是否未生成对应的 Bean 对象，那么就自动创建 Bean 对象。因为有这样的机制，我们只需要使用 pom 文件，配置需要引入的框架，就可以实现该框架的使用所需要的类的自动装配。
+
 ## 设计理念与目标
 
 Spring所拥有的强大功能之一就是可以集成各种开源软件。Spring Boot本身并不提供Spring的核心功能，而是作为Spring的脚手架框架，以达到快速构建项目、预置三方配置、开箱即用的目的。

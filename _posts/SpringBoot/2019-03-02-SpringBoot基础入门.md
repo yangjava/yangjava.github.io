@@ -4,7 +4,7 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot之HelloWorld 
+# SpringBoot基础入门
 天生我材必有用，干金散尽还复来。  ——李白《将进酒》
 下面就让我们开始一个Hello World级别的项目吧。
 
