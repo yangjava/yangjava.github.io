@@ -4,13 +4,23 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
+# SpringBoot源码-自动装配原理
 
-# 核心原理入门
+自动装配是springboot的核心，一般提到自动装配就会和springboot联系在一起。实际上 Spring Framework 早就实现了这个功能。Spring Boot 只是在其基础上，通过 SPI 的方式，做了进一步优化。
+SpringBoot 定义了一套接口规范，这套规范规定：SpringBoot 在启动时会扫描外部引用 jar 包中的META-INF/spring.factories文件，将文件中配置的类型信息加载到 Spring 容器（此处涉及到 JVM 类加载机制与 Spring 的容器知识），并执行类中定义的各种操作。对于外部 jar 来说，只需要按照 SpringBoot 定义的标准，就能将自己的功能装置进 SpringBoot。
 
-springboot的有两大核心
+没有 Spring Boot 的情况下，如果我们需要引入第三方依赖，需要手动配置，非常麻烦。但是，Spring Boot 中，我们直接引入一个 starter 即可。比如你想要在项目中使用 redis 的话，直接在项目中引入对应的 starter 即可。
 
-- 依赖管理
-- 自动装配
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+引入 starter 之后，我们通过少量注解和一些简单的配置就能使用第三方组件提供的功能了。
+
+所以说，其实自动装配可以简单的理解为：通过注解或者一些简单的配置就能在spring boot的帮助下实现某款功能。
+
 
 ## **依赖管理**
 
@@ -461,7 +471,7 @@ com.springdemo.MyAutoConfiguration
 默认为 true，所以自定义的starter成功执行。
 
 ## 自动配置
-
+springboot是如何实现自动装配的？如何实现按需加载？
 springboot是基于spring的新型的轻量级框架，最厉害的地方当属**自动配置**。那我们就可以根据启动流程和相关原理来看看，如何实现传奇的自动配置。
 
 ### springboot的启动类入口
@@ -480,7 +490,7 @@ public class HelloWorldApplication {
 ```
 
 **@SpringBootApplication**
-
+首先我们先来看一些springboot的核心注解@SpringBootApplication的类：
 - Spring Boot应用标注在某个类上，说明这个类是SpringBoot的主配置类，SpringBoot就应该运行这个类的main方法来启动SpringBoot应用。
 
 ### SpringBootApplication注解
@@ -611,6 +621,7 @@ ComponentScan注解作用
 注：所以SpringBoot的启动类最好是放在root ``package``下，因为默认不指定basePackages
 
 #### **@EnableAutoConfiguration**注解
+EnableAutoConfiguration 只是一个简单地注解，自动装配核心功能的实现实际是通过 AutoConfigurationImportSelector类。
 
 - 开启自动配置功能
 - 以前使用Spring需要配置的信息，Spring Boot帮助自动配置；
@@ -873,3 +884,33 @@ public class AfterMBeanServerReadyConfiguration {
     // 通过@Bean添加其他必要的bean定义
 }
 ```
+现在我们结合getAutoConfigurationEntry()的源码来详细分析一下：
+```java
+protected AutoConfigurationEntry getAutoConfigurationEntry(AnnotationMetadata annotationMetadata) {
+    //第1步：判断自动装配开关是否打开
+   if (!isEnabled(annotationMetadata)) {
+      return EMPTY_ENTRY;
+   }
+    //第2步：用于获取注解中的exclude和excludeName。
+    //获取注解属性
+   AnnotationAttributes attributes = getAttributes(annotationMetadata); 
+    //第3步：获取需要自动装配的所有配置类，读取META-INF/spring.factories
+    //读取所有预配置类
+   List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
+    //第4步：符合条件加载
+    //去掉重复的配置类
+   configurations = removeDuplicates(configurations);
+    //执行
+   Set<String> exclusions = getExclusions(annotationMetadata, attributes);
+    //校验
+   checkExcludedClasses(configurations, exclusions);
+    //删除
+   configurations.removeAll(exclusions);
+    //过滤
+   configurations = getConfigurationClassFilter().filter(configurations);
+   fireAutoConfigurationImportEvents(configurations, exclusions);
+    //创建自动配置的对象
+   return new AutoConfigurationEntry(configurations, exclusions);
+}
+```
+
