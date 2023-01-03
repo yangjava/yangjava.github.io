@@ -7,7 +7,7 @@ keywords: Kubernetes
 # Kubernetes组件
 愿尔一祝后，读书日日忙。——杜牧《冬至日寄小侄阿宜诗》    
 
-##如何利用Kind安装K8S
+## 如何利用Kind安装K8S
 
 Kind是Kubernetes In Docker的缩写，顾名思义，看起来是把k8s放到docker的意思。没错，kind创建k8s集群的基本原理就是：提前准备好k8s节点的镜像，通过docker启动容器，来模拟k8s的节点，从而组成完整的k8s集群。需要注意，kind创建的集群仅可用于开发、学习、测试等，不能用于生产环境。
 Github 地址：https://github.com/kubernetes-sigs/kind

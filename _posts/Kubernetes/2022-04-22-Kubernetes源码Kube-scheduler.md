@@ -4,6 +4,152 @@ categories: Kubernetes
 description: none
 keywords: Kubernetes
 ---
+# Kubernetes源码kube-scheduler
+kube-scheduler 负责分配调度 Pod 到集群内的节点上，它监听 kube-apiserver，查询还未分配 Node 的 Pod，然后根据调度策略为这些 Pod 分配节点（更新 Pod 的 NodeName 字段）。
+调度器需要充分考虑诸多的因素：
+- 公平调度
+- 资源高效利用
+- QoS
+- affinity 和 anti-affinity
+- 数据本地化（data locality）
+- 内部负载干扰（inter-workload interference）
+- deadlines
+
+## 指定 Node 节点调度
+有三种方式指定 Pod 只运行在指定的 Node 节点上
+- nodeSelector：只调度到匹配指定 label 的 Node 上
+- nodeAffinity：功能更丰富的 Node 选择器，比如支持集合操作
+- podAffinity：调度到满足条件的 Pod 所在的 Node 上
+
+### nodeSelector 示例
+
+首先给 Node 打上标签
+```shell
+   kubectl label nodes node-01 disktype=ssd
+```
+然后在 daemonset 中指定 nodeSelector 为 disktype=ssd：
+```shell
+   spec:
+    nodeSelector:
+    disktype: ssd
+```
+
+### nodeAffinity 示例
+nodeAffinity 目前支持两种：requiredDuringSchedulingIgnoredDuringExecution 和 preferredDuringSchedulingIgnoredDuringExecution，分别代表必须满足条件和优选条件。比如下面的例子代表调度到包含标签 kubernetes.io/e2e-az-name 并且值为 e2e-az1 或 e2e-az2 的 Node 上，并且优选还带有标签 another-node-label-key=another-node-label-value 的 Node。
+```yaml
+   apiVersion: v1
+   kind: Pod
+   metadata:
+    name: with-node-affinity
+   spec:
+    affinity:
+    nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    nodeSelectorTerms:
+    - matchExpressions:
+    - key: kubernetes.io/e2e-az-name
+    operator: In
+    values:
+    - e2e-az1
+    - e2e-az2
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 1
+    preference:
+    matchExpressions:
+    - key: another-node-label-key
+    operator: In
+    values:
+    - another-node-label-value
+    containers:
+    - name: with-node-affinity
+    image: gcr.io/google_containers/pause:2.0
+```
+
+### podAffinity 示例
+
+podAffinity 基于 Pod 的标签来选择 Node，仅调度到满足条件 Pod 所在的 Node 上，支持 podAffinity 和 podAntiAffinity。这个功能比较绕，以下面的例子为例：
+- 如果一个 “Node 所在 Zone 中包含至少一个带有 security=S1 标签且运行中的 Pod”，那么可以调度到该 Node
+- 不调度到 “包含至少一个带有 security=S2 标签且运行中 Pod” 的 Node 上
+
+```yaml
+   apiVersion: v1
+   kind: Pod
+   metadata:
+    name: with-pod-affinity
+   spec:
+    affinity:
+    podAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+    matchExpressions:
+    - key: security
+    operator: In
+    values:
+    - S1
+    topologyKey: failure-domain.beta.kubernetes.io/zone
+    podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+    podAffinityTerm:
+    labelSelector:
+    matchExpressions:
+    - key: security
+    operator: In
+    values:
+    - S2
+    topologyKey: kubernetes.io/hostname
+    containers:
+    - name: with-pod-affinity
+    image: gcr.io/google_containers/pause:2.0
+```
+
+## Taints 和 tolerations
+Taints 和 tolerations 用于保证 Pod 不被调度到不合适的 Node 上，其中 Taint 应用于 Node 上，而 toleration 则应用于 Pod 上。
+目前支持的 taint 类型
+- NoSchedule：新的 Pod 不调度到该 Node 上，不影响正在运行的 Pod
+- PreferNoSchedule：soft 版的 NoSchedule，尽量不调度到该 Node 上
+- NoExecute：新的 Pod 不调度到该 Node 上，并且删除（evict）已在运行的 Pod。Pod 可以增加一个时间（tolerationSeconds）
+然而，当 Pod 的 Tolerations 匹配 Node 的所有 Taints 的时候可以调度到该 Node 上；当 Pod 是已经运行的时候，也不会被删除（evicted）。另外对于 NoExecute，如果 Pod 增加了一个 tolerationSeconds，则会在该时间之后才删除 Pod。
+
+比如，假设 node1 上应用以下几个 taint
+```shell
+   kubectl taint nodes node1 key1=value1:NoSchedule
+   kubectl taint nodes node1 key1=value1:NoExecute
+   kubectl taint nodes node1 key2=value2:NoSchedule
+ 
+```
+下面的这个 Pod 由于没有 toleratekey2=value2:NoSchedule 无法调度到 node1 上
+```yaml
+   tolerations:
+   - key: "key1"
+    operator: "Equal"
+    value: "value1"
+    effect: "NoSchedule"
+   - key: "key1"
+    operator: "Equal"
+    value: "value1"
+    effect: "NoExecute"
+```
+而正在运行且带有 tolerationSeconds 的 Pod 则会在 600s 之后删除
+```yaml
+   tolerations:
+   - key: "key1"
+    operator: "Equal"
+    value: "value1"
+    effect: "NoSchedule"
+   - key: "key1"
+    operator: "Equal"
+    value: "value1"
+    effect: "NoExecute"
+    tolerationSeconds: 600
+   - key: "key2"
+    operator: "Equal"
+    value: "value2"
+    effect: "NoSchedule"
+```
+
+
+
 ### kube-scheduler 的设计
 
 Kube-scheduler 是 kubernetes 的核心组件之一，也是所有核心组件之间功能比较单一的，其代码也相对容易理解。kube-scheduler 的目的就是为每一个 pod 选择一个合适的 node，整体流程可以概括为三步，获取未调度的 podList，通过执行一系列调度算法为 pod 选择一个合适的 node，提交数据到 apiserver，其核心则是一系列调度算法的设计与执行。
