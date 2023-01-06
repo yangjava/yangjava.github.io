@@ -104,6 +104,108 @@ Hikari连接池的使用是很简单的，因为是默认的连接池，因此�
 - 自定义集合类型（ConcurrentBag）：提高并发读写的效率；
 - 其他针对BoneCP缺陷的优化，比如对于耗时超过一个CPU时间片的方法调用的研究（但没说具体怎么优化）。
 
+
+## Hikari最佳实践
+HikariCP连接池配置详解
+对应的配置属性、解释、注意点都来源于官方：[https://github.com/brettwooldridge/HikariCP]
+
+注意点：
+1）所有时间单位的属性都是毫秒。
+2）属性分必须；频繁使用；非频繁使用三个级别，重要度由高到低
+
+必须属性(Essentials)
+1. dataSourceClassName or jdbcUrl
+   配置由 jdbc驱动提供的对应数据库 DataSource 类名，常见的如下表：
+
+注意点：
+⚠ 1）Note: Spring Boot auto-configuration users, you need to use jdbcUrl-based configuration. （使用spring boot自动化配置数据源的需要配置jdbcUrl，不能只配置dataSourceClassName）
+⚠ 2）The MySQL DataSource is known to be broken with respect to network timeout support. Use jdbcUrl configuration instead.（MySQL数据库数据源在面对网络超时时有故障，所以也需要用jdbcUrl替代，所有上表中MySQL的行注释掉了）
+
+jdbcUrl用来配置jdbc连接串，很多人习惯配置jdbcUrl 。注意：一些老的驱动还要同时配置 driverClassName，否则会报错（推荐不用配置它，可以先不配置尝试运行看报不报错）
+
+dataSourceClassName 和 jdbcUrl缺省都是空。
+
+最佳实践：鉴于使用spring-boot自动装配使用HikariCP的只配置jdbcUrl即可，driverClassName根据测试情况可选配置
+
+2. username
+   很容易理解，就是当前用户名，缺省是空。 必须配置
+
+3. password
+   指用户名对应的密码，缺省是空。必须配置
+
+频繁使用的属性(Frequently used)
+1. autoCommit
+   这个属性控制连接返回池中前auto-commit是否自动进行。缺省：true。
+   最佳实践：不需要配置，保持缺省即可。
+
+2. connectionTimeout
+   控制一个客户端等待从池中获取连接的最大时间。超过该时间还获取不到连接则抛出SQLException，最低可设置的时间是250ms，缺省：30000ms
+
+最佳实践：非特殊业务场景保持缺省30s连接超时即可。
+
+3. idleTimeout
+   控制空闲连接的在池中最大的空闲时间。注意：这个配置只有当配置了minimumIdle属性(表示允许的最小空闲连接数)，且比maximumPoolSize（表示池中允许的最大连接数）更小时才生效。 这个比较好理解：当前池中有空闲连接且比允许的最小空闲连接多时，根据空闲超时时间来逐出。
+
+当配置为0时表示空闲连接永远不逐出。
+缺省：600000ms
+最小生效值：10000ms
+
+连接池会定时轮询检测哪些连接是空闲，并且空闲达到了idleTimeout配置的时间，但轮询间隔有时间差，一个空闲连接最大可空闲idleTimeout + 30s会逐出，平均是：idleTimeout + 15s。
+
+最佳实践：不设置该属性和minimumIdle属性，保持连接池固定的连接
+
+4. keepaliveTime
+   用于跟数据库保持心跳连接，防止底层网络基础设施超时断开，定期验证连接的有效性。这个参数需要设置的比maxLifetime(连接最大生存时间，下文会介绍)小。只会对池中空闲连接发生keeplive，具体执行细节是：
+   从池中取出一个连接，执行“ping”，成功后再放回。
+   ping:
+   如果当前支持JDBC4 , 通过调用isValid()方法实现
+   否则执行connectionTestQuery属性(下文会介绍)指定的sql
+
+这个参数配置后连接池会定期检测连接有效性，检测过程中连接短暂从池中移出，不过不用担心，耗时非常短(几ms甚至更短)
+
+缺省：0， 即不开启
+最小可配置：30000ms ，即30秒
+
+最佳实践： 需要设置， 可设置为60000, 即1分钟心跳一次
+
+5. maxLifetime
+   该属性用于控制连接在池中的最大生存时间，超过该时间强制逐出，连接池向数据申请新的连接进行补充。注意：当前正在使用的连接不会强制逐出，哪怕它的累计时间已经到了maxLifetime。
+
+强烈建议设置该属性，可设置的比数据库或网络基础设施允许的最大连接时间小一些。 如数据库连接最大失效时间是8小时，可设置为4小时。
+
+缺省：1800000， 即30min
+最小可配置：30000，即30s
+
+最佳实践：需要设置，根据数据库或网络基础设施的情况，比它们小一些
+
+7. connectionTestQuery
+   如果当前连接驱动支持JDBC4, 强烈不建议设置此属性。因为该属性的设置是为了支持keepalive检测，只有当JDBC4的isValid不可用时才使用connectionTestQuery配置的sql进行检测；或者当从池中获取连接时检测连接是否有效
+
+缺省：none
+
+最佳实践：驱动支持JDBC4不需要设置，反之需要配置，MYSQL: select 1; Oracle: select 1 from dual
+
+8. minimumIdle
+   配置连接池最小空闲连接数。为了性能最优化和为了应对高峰请求的快速响应强烈不建议设置该属性，让HikariCP连接池保持固定大小。
+   缺省：跟maximumPoolSize相同
+
+最佳实践：保持缺省，让连接池固定大小，避免扩缩容带来的性能影响
+
+9. maximumPoolSize
+   配置允许连接池达到的最大连接数（包括空闲和正在使用的），当池中连接达到maximumPoolSize，且都不空闲，当有新请求从池中申请连接池会阻塞等待可用连接，达到connectionTimeout还不能申请成功，则抛出SQLException。
+
+缺省：10
+
+最佳实践：根据实际环境配置，通常设置为核心数的2倍较优
+
+10. metricRegistry
+    配置该属性，能让连接池将度量信息收集起来供分析。配置的属性是Codahale/Dropwizard的实例，具体可参考wiki页面：https://github.com/brettwooldridge/HikariCP/wiki/Dropwizard-Metrics
+
+11. healthCheckRegistry
+    同样是收集信息用，这个属性收集的是连接池的健康状况。配置的属性是Codahale/Dropwizard的实例，具体可参考wiki页面：https://github.com/brettwooldridge/HikariCP/wiki/Dropwizard-HealthChecks
+
+
+
 ### SpringBoot整合druid(德鲁伊)连接池
 
 官网：[https://druid.apache.org/](https://druid.apache.org/)

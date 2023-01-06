@@ -4,7 +4,11 @@ categories: JUC
 description: none
 keywords: JUC
 ---
-## CountDownLatch（闭锁）
+# Java JUC之CountDownLatch（闭锁）
+CountDownLatch 是多线程控制的一种工具，它被称为 门阀、 计数器或者 闭锁。这个工具经常用来用来协调多个线程之间的同步，或者说起到线程之间的通信（而不是用作互斥的作用）。
+
+## 认识 CountDownLatch
+CountDownLatch 能够使一个线程在等待另外一些线程完成各自工作之后，再继续执行。它相当于是一个计数器，这个计数器的初始值就是线程的数量，每当一个任务完成后，计数器的值就会减一，当计数器的值为 0 时，表示所有的线程都已经任务了，然后在 CountDownLatch 上等待的线程就可以恢复执行接下来的任务。
 
 ### 需求
 
