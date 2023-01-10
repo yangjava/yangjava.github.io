@@ -4,8 +4,7 @@ categories: Prometheus
 description: none
 keywords: Prometheus
 ---
-
-## Alertmanager
+# Prometheus告警
 
 Alertmanager是警报的缓冲区，它具有以下特征：
 

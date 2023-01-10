@@ -4,7 +4,6 @@ categories: Prometheus
 description: none
 keywords: Prometheus
 ---
-
 # 数据模型
 
 prometheus将所有数据存储为时间序列：属于相同 metric名称和相同标签组（键值对）的时间戳值流。

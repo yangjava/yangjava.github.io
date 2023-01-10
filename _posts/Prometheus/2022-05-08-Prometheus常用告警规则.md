@@ -4,12 +4,13 @@ categories: Prometheus
 description: none
 keywords: Prometheus
 ---
+# prometheus 告警指标
 
-# **prometheus 告警指标**
 
+## 常用prometheus告警规则模板
 https://blog.51cto.com/shoufu/2561993
 
-# **常用prometheus告警规则模板（三）**
+
 
 
 
