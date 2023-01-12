@@ -1,8 +1,8 @@
 ---
 layout: post
-categories: Spring Boot3.0
+categories: SpringBoot3.0
 description: none
-keywords: Spring Boot3.0
+keywords: SpringBoot3.0
 ---
 一. 编译报错，import javax.servlet.*; 不存在
 这个报错主要是Spring Boot3.0已经为所有依赖项从 Java EE 迁移到 Jakarta EE API，导致 servlet 包名的修改，Spring团队这样做的原因，主要是避免 Oracle 的版权问题，解决办法很简单，两步走：
