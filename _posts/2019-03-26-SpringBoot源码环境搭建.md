@@ -4,7 +4,7 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot源码-环境搭建
+# SpringBoot源码环境搭建
 Spring Boot是由Pivotal团队提供的全新框架，其设计目的是用来简化新Spring应用的初始搭建以及开发过程。该框架使用了特定的方式来进行配置，从而使开发人员不再需要定义样板化的配置。
 
 ## Springboot 源码

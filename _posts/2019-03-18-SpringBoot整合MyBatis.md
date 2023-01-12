@@ -1,6 +1,7 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot,Mybatis]
 description: none
 keywords: SpringBoot
 ---
+# SpringBoot整合Mybatis
