@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: OpenTelemetry
+categories: [OpenTelemetry,Trace]
 description: none
 keywords: OpenTelemetry
 ---
