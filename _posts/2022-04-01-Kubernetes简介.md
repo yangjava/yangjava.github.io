@@ -7,6 +7,7 @@ keywords: Kubernetes
 # Kubernetes简介
 黑发不知勤学早，白首方悔读书迟。——颜真卿《劝学诗》    
 官网：Kubernetes是用于自动部署，扩展和管理容器化应用程序的开源系统。
+
 **Kubernetes, also known as K8s, is an open-source system for automating deployment, scaling, and management of containerized applications.**
 
 ## 什么是Kubernetes

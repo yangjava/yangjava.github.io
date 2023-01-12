@@ -18,16 +18,7 @@ ZooKeeper 主要用来解决分布式集群中应用系统的一致性问题，�
 
 很多大名鼎鼎的框架都基于 ZooKeeper 来实现分布式高可用，如：Dubbo、Kafka 等。
 
-#### 参考资料
 
-Apache ZooKeeper 官网：
-https://zookeeper.apache.org/
-
-Apache ZooKeeper r3.7.0原版文档：
-https://zookeeper.apache.org/doc/r3.7.0/index.html
-
-Apache ZooKeeper r3.5.6中文文档：
-https://www.docs4dev.com/docs/zh/zookeeper/r3.5.6/reference/
 
 ### 由来
 
@@ -314,3 +305,12 @@ Follow在集群中有多个，主要的作用有：
 2、不参与leader选举，没有投票权。也不参与写操作的提议过程。
 
 3、数据没有事务化到硬盘。即Observer只会把数据加载到内存。
+
+
+# 参考资料
+
+Apache ZooKeeper 官网：[https://zookeeper.apache.org/](https://zookeeper.apache.org/)
+
+Apache ZooKeeper r3.7.0原版文档：[https://zookeeper.apache.org/doc/r3.7.0/index.html](https://zookeeper.apache.org/doc/r3.7.0/index.html)
+
+Apache ZooKeeper r3.5.6中文文档：[https://www.docs4dev.com/docs/zh/zookeeper/r3.5.6/reference/](https://www.docs4dev.com/docs/zh/zookeeper/r3.5.6/reference/)

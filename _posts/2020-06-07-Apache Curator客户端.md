@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Zookeeper
+categories: [Zookeeper,Curator]
 description: none
 keywords: Zookeeper
 ---

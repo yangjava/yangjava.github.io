@@ -176,9 +176,8 @@ kube-scheduler-k8s-1-control-plane            1/1     Running   3          8d
 ### 实践创建多节点的集群
 
 
-官网相关：
-https://blog.csdn.net/easylife206/article/details/101091751
-官方文档：https://kind.sigs.k8s.io/
-GitHub主页：https://github.com/kubernetes-sigs/kind/
-https://blog.csdn.net/pythonxxoo/article/details/123321193
-https://blog.csdn.net/qianghaohao/article/details/108020937
+# 参考资料
+
+官方文档: [https://kind.sigs.k8s.io/](https://kind.sigs.k8s.io/)
+
+GitHub主页：[https://github.com/kubernetes-sigs/kind/](https://github.com/kubernetes-sigs/kind/)

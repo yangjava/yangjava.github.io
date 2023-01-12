@@ -4,7 +4,7 @@ categories: [OpenTelemetry,Trace]
 description: none
 keywords: OpenTelemetry
 ---
-概述
+# OpenTelemetry简介
 OpenTelemetry 的自身定位很明确：数据采集和标准规范的统一，对于数据如何去使用、存储、展示、告警，官方是不涉及的
 
 OpenTelemetry 要解决的是对可观测性的大一统，它提供了一组 API 和 SDK 来标准化遥测数据的采集和传输，opentelemetry 并不想对所有的组件都进行重写，而是最大程度复用目前业界在各大领域常用工具，通过提供了一个安全，厂商中立的能用协议、组件，这样就可以按照需要形成 pipeline 将数据发往不同的后端。

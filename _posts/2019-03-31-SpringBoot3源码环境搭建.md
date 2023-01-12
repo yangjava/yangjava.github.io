@@ -4,7 +4,7 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot3源码-环境搭建
+# SpringBoot3源码环境搭建
 在maven仓库中搜索SpringBoot3的Maven依赖
 https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-parent
 maven依赖

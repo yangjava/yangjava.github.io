@@ -4,18 +4,13 @@ categories: Observerbility
 description: none
 keywords: Observerbility
 ---
-可观测性一词诞生于几十年前的控制理论。近年来，随着企业以微服务、⽆服务器和容器技术的形式迅速采⽤了AWS、阿里云等云原⽣基础设施服务。在这些分布式系统中追踪事件的起源需要在云上、本地或两者上运⾏的数千个进程。传统的监控技术和⼯具就很难跟踪这些分布式架构中的许多通信路径和相互依赖关系。更别提排查问题并定位根本原因了。
+# Observerbility可观测性
+而可观测性一词近两年火起来的导火索是 CNCF 在云原生定义中提到 Observerbility，并声称这是云原生时代的必备能力。于是从生产所需到概念发声，加之包括谷歌在内的众多大厂一拥而上，“可观测性”正式出道。
 
-监控技术和工具革新迫在眉睫。
+## 可观测性的定义
 
-而可观测性一词近两年火起来的导火索是 CNCF 在云原生定义中提到 Observerbility，并声称这是云原生时代的必备能力。
-
-于是从生产所需到概念发声，加之包括谷歌在内的众多大厂一拥而上，“可观测性”正式出道。
-
-可观测性的定义
 Observability是来自控制论的一个概念：
-
-In control theory, observability is a measure for how well internal states of a system can be inferred by knowledge of its external outputs. The observability and controllability of a system are mathematical duals. The concept ofobservability was introduced by American-Hungarian scientist Rudolf E. Kalmanfor linear dynamic systems.
+**In control theory, observability is a measure for how well internal states of a system can be inferred by knowledge of its external outputs. The observability and controllability of a system are mathematical duals. The concept ofobservability was introduced by American-Hungarian scientist Rudolf E. Kalmanfor linear dynamic systems.**
 
 官方话语，感兴趣的读者可以自行翻译。
 
@@ -23,7 +18,8 @@ In control theory, observability is a measure for how well internal states of a 
 
 简单来看，如果仅使⽤来⾃输出的信息（即传感器数据）可以估计当前状态，则系统被认为是“可观测的”。
 
-可观测性的价值
+## 可观测性的价值
+
 谷歌给出可观测性的核心价值很简单：快速排障（troubleshooting）。
 
 这个世界上没有不存在 Bug 的系统，而随着系统越来越精细，越来越复杂，越来越动态，越来越庞大，潜藏的问题和风险也就越来越多。
@@ -34,7 +30,7 @@ In control theory, observability is a measure for how well internal states of a 
 
 因此，在 CNCF 对于云原生的定义中，已经明确将可观测性列为一项必备要素。
 
-可观测性的三大支柱
+## 可观测性的三大支柱
 业界对可观测性的共识，基于可观测性的三大支柱“metrics、logs、traces”。
 
 1、logs（日志）
@@ -62,7 +58,7 @@ In control theory, observability is a measure for how well internal states of a 
 
 那么，要构建一个优秀的可观测系统，仅有 metrics、logs、traces 是不是就够用了呢？我们下期再接着聊。
 
-一、OpenTracing
+## OpenTracing
 官网地址：https://opentracing.io/
 
 OpenTracing是CNCF（Cloud Native Computing Foundation projects）的项目，它是一个与厂商无关的API，并提供了一种规范，可以帮助开发人员轻松的在他们的代码上集成tracing。官方提供了Go, JavaScript, Java, Python, Ruby, PHP, Objective-C, C++, C#等语言的支持。它是开发的不属于任何一家公司。事实上有很多公司正在支持OpenTracing，例如：Zipkin和Jaeger都遵循OpenTracing协议。
@@ -84,7 +80,7 @@ OpenTracing希望围绕什么是Tracing以及如何和我们的应用程序集�
 ↑
 ↑
 (Span G `FollowsFrom` Span F)
-二、OpenCensus
+## OpenCensus
 官网地址：https://opencensus.io/
 
 OpenCensus是Google开源的，作为最早提出Tracing概念的公司，OpenCensus也是Google Dapper的社区版本。
@@ -93,7 +89,7 @@ OpenSensus是允许你采集应用程序Metrics和分布式Traces，并且支持
 
 读到这里，我们可以很容易分别出OpenTracing和OpenCensus的差别，主要在于OpenCensus把Metrics包括进来了，不仅可以采集traces，还支持采集metrics，还有一点不同OpenCensus并不是单纯的规范制定，他还把包括数据采集的Agent、Collector。
 
-三、OpenCensus VS OpenTracing
+## OpenCensus VS OpenTracing
 1、OpenTracing只支持traces，OpenCensus支持traces和metrics。
 
 2、OpenTracing支持单纯的制定规范，OpenCensus不仅制定规范，还包含了Agent和Collector。
@@ -101,7 +97,7 @@ OpenSensus是允许你采集应用程序Metrics和分布式Traces，并且支持
 总结：OpenTracing的支持厂商众多，例如：ElasticSearch、Uber、Skywalking、Couchbase。OpenCensus除了有google和微软两大巨头支持，还有Datadog、Jaeger、Zipkin、Prometheus，阵容非常强大。
 
 
-四、OpenTelemetry
+## OpenTelemetry
 官网地址：https://opentelemetry.io/
 
 OpenTelemetry是CNCF的孵化项目。由OpenTracing和OpenCensus项目合并而成。OpenTelemetry是一组APIs、SDKs、工具和集成，旨在创建和管理遥测数据，如traces、metrics和logs。该项目提供了一个与厂商无关的实现，可以用来将遥测数据发送到你指定的后端，它支持各种流行的开源项目，包括Jaeger和Prometheus。
