@@ -1,7 +1,9 @@
 ---
-layout: post categories: Spring description: none keywords: Spring
+layout: post
+categories: Spring
+description: none
+keywords: Spring
 ---
-
 # Spring源码-SPEL扩展
 
 SpEL 是 Spring 定义的一套在 Spring 框架内运行的表达式语言。
