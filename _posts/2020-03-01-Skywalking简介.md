@@ -89,15 +89,14 @@ SkyWalking 逻辑上分为四部分: Probes（探针）、Platform backend（平
 - **互操作性**。可观测性领域如此广阔，以至于 SkyWalking 几乎不可能支持所有系统，即使在其社区的支持下也是如此。目前，它支持与其他 OSS 系统的互操作性，尤其是探针，如 Zipkin、Jaeger、OpenTracing 和 OpenCensus。SkyWalking 能够接受和读取这些数据格式对最终用户来说非常重要，因为用户不需要切换他们的库。
 
 # skywalking参考资料
-[Apache SkyWalking 社区](https://skywalking.apache.org/)
-[Apache SkyWalking 官方文档](https://github.com/apache/skywalking/tree/master/docs)
-[SkyWalking 文档中文版](https://skyapm.github.io/document-cn-translation-of-skywalking/)
+Apache SkyWalking 社区: [https://skywalking.apache.org/](https://skywalking.apache.org/)
 
-在 https://github.com/apache/skywalking/tree/master/docs 地址下，提供了 SkyWalking 的**英文**文档。
+Apache SkyWalking 官方文档: [https://github.com/apache/skywalking/tree/master/docs](https://github.com/apache/skywalking/tree/master/docs)
 
-推荐先阅读 https://github.com/SkyAPM/document-cn-translation-of-skywalking 地址，提供了 SkyWalking 的**中文**文档。
+SkyWalking 文档中文版: [https://skyapm.github.io/document-cn-translation-of-skywalking/](https://skyapm.github.io/document-cn-translation-of-skywalking/)
 
-使用 SkyWalking 的目的，是实现**分布式链路追踪**的功能，所以最好去了解下相关的知识。这里推荐阅读两篇文章：
+OpenTracing 官方标准(中文版): [https://github.com/opentracing-contrib/opentracing-specification-zh](https://github.com/opentracing-contrib/opentracing-specification-zh)
 
-- [《OpenTracing 官方标准 —— 中文版》](https://github.com/opentracing-contrib/opentracing-specification-zh)
-- Google 论文 [《Dapper，大规模分布式系统的跟踪系统》](http://www.iocoder.cn/Fight/Dapper-translation/?self)
+Google论文:Dapper，大规模分布式系统的跟踪系统[http://www.iocoder.cn/Fight/Dapper-translation/?self](http://www.iocoder.cn/Fight/Dapper-translation/?self)
+
+
