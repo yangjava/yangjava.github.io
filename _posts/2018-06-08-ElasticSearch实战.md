@@ -1124,3 +1124,9 @@ public class EsUtils<T> {
     }
 }
 ```
+
+## 获取所有索引
+```java
+        GetAliasesRequest request = new GetAliasesRequest();
+        GetAliasesResponse getAliasesResponse =  restHighLevelClient.indices().getAlias(request,RequestOptions.DEFAULT);
+```
