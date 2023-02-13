@@ -4,8 +4,8 @@ categories: JUC
 description: none
 keywords: JUC
 ---
+# Java并发编程synchronized
 
-## 线程安全和synchronized关键字
 
 ### 什么是线程安全？
 
