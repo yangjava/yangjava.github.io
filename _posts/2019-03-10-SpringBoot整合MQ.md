@@ -6,15 +6,6 @@ keywords: SpringBoot
 ---
 # SpringBoot整合MQ
 
-
-
-
-
-
-
-
-
-
 ## SpringBoot整合RocketMQ
 在使用SpringBoot的starter集成包时，要特别注意版本。添加依赖
 第一个是原生依赖，第二个是spring-boot-starter，这里我们添加第二个依赖。
