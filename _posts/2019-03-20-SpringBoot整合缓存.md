@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot,Cache,Caffeine,Ehcache]
 description: none
 keywords: SpringBoot
 ---
@@ -17,17 +17,17 @@ Cache接口下Spring提供了各种xxxCache的实现，如RedisCache，EhCacheCa
 
 针对不同的缓存技术，需要实现不同的cacheManager，Spring定义了如下的cacheManger实现。
 
-|  CacheManger   |描述     |
-|-----|-----|
-|  SimpleCacheManager   | 使用简单的Collection来存储缓存，主要用于测试    |
-|  ConcurrentMapCacheManager   | 使用ConcurrentMap作为缓存技术（默认），需要显式的删除缓存，无过期机制    |
-|  NoOpCacheManager   |  仅测试用途，不会实际存储缓存   |
-| EhCacheCacheManager    |  使用EhCache作为缓存技术，以前在hibernate的时候经常用   |
-|  GuavaCacheManager   |  使用google guava的GuavaCache作为缓存技术(1.5版本已不建议使用）   |
-| CaffeineCacheManager    | 是使用Java8对Guava缓存的重写，spring5（springboot2）开始用Caffeine取代guava    |
-|  HazelcastCacheManager   | 使用Hazelcast作为缓存技术    |
-|  JCacheCacheManager   | 使用JCache标准的实现作为缓存技术，如Apache Commons JCS    |
-|  RedisCacheManager   | 使用Redis作为缓存技术    |
+| CacheManger               | 描述                                                         |
+|---------------------------|------------------------------------------------------------|
+| SimpleCacheManager        | 使用简单的Collection来存储缓存，主要用于测试                                |
+| ConcurrentMapCacheManager | 使用ConcurrentMap作为缓存技术（默认），需要显式的删除缓存，无过期机制                  |
+| NoOpCacheManager          | 仅测试用途，不会实际存储缓存                                             |
+| EhCacheCacheManager       | 使用EhCache作为缓存技术，以前在hibernate的时候经常用                         |
+| GuavaCacheManager         | 使用google guava的GuavaCache作为缓存技术(1.5版本已不建议使用）               |
+| CaffeineCacheManager      | 是使用Java8对Guava缓存的重写，spring5（springboot2）开始用Caffeine取代guava |
+| HazelcastCacheManager     | 使用Hazelcast作为缓存技术                                          |
+| JCacheCacheManager        | 使用JCache标准的实现作为缓存技术，如Apache Commons JCS                    |
+| RedisCacheManager         | 使用Redis作为缓存技术                                              |
 
 常规的SpringBoot已经为我们自动配置了EhCache、Collection、Guava、ConcurrentMap等缓存，默认使用ConcurrentMapCacheManager。SpringBoot的application.properties配置文件，使用spring.cache前缀的属性进行配置。
 
@@ -91,18 +91,16 @@ public class DemoApplication{
 ```
 
 ### @Cacheable	
-
 @Cacheable：配置了findByName函数的返回值将被加入缓存。同时在查询时，会先从缓存中获取，若不存在才再发起对数据库的访问。
 
 该注解主要有下面几个参数：
-
-value、cacheNames：两个等同的参数（cacheNames为Spring 4新增，作为value的别名），用于指定缓存存储的集合名。由于Spring 4中新增了@CacheConfig，因此在Spring 3中原本必须有的value属性，也成为非必需项了
-key：缓存对象存储在Map集合中的key值，非必需，缺省按照函数的所有参数组合作为key值，若自己配置需使用SpEL表达式，比如：@Cacheable(key = “#p0”)：使用函数第一个参数作为缓存的key值
-condition：缓存对象的条件，非必需，也需使用SpEL表达式，只有满足表达式条件的内容才会被缓存，比如：@Cacheable(key = “#p0”, condition = “#p0.length() < 3”)，表示只有当第一个参数的长度小于3的时候才会被缓存
-unless：另外一个缓存条件参数，非必需，需使用SpEL表达式。它不同于condition参数的地方在于它的判断时机，该条件是在函数被调用之后才做判断的，所以它可以通过对result进行判断。
-keyGenerator：用于指定key生成器，非必需。若需要指定一个自定义的key生成器，我们需要去实现org.springframework.cache.interceptor.KeyGenerator接口，并使用该参数来指定。需要注意的是：该参数与key是互斥的
-cacheManager：用于指定使用哪个缓存管理器，非必需。只有当有多个时才需要使用
-cacheResolver：用于指定使用那个缓存解析器，非必需。需通过org.springframework.cache.interceptor.CacheResolver接口来实现自己的缓存解析器，并用该参数指定。
+- value、cacheNames：两个等同的参数（cacheNames为Spring 4新增，作为value的别名），用于指定缓存存储的集合名。由于Spring 4中新增了@CacheConfig，因此在Spring 3中原本必须有的value属性，也成为非必需项了
+- key：缓存对象存储在Map集合中的key值，非必需，缺省按照函数的所有参数组合作为key值，若自己配置需使用SpEL表达式，比如：@Cacheable(key = “#p0”)：使用函数第一个参数作为缓存的key值
+- condition：缓存对象的条件，非必需，也需使用SpEL表达式，只有满足表达式条件的内容才会被缓存，比如：@Cacheable(key = “#p0”, condition = “#p0.length() < 3”)，表示只有当第一个参数的长度小于3的时候才会被缓存
+- unless：另外一个缓存条件参数，非必需，需使用SpEL表达式。它不同于condition参数的地方在于它的判断时机，该条件是在函数被调用之后才做判断的，所以它可以通过对result进行判断。
+- keyGenerator：用于指定key生成器，非必需。若需要指定一个自定义的key生成器，我们需要去实现org.springframework.cache.interceptor.KeyGenerator接口，并使用该参数来指定。需要注意的是：该参数与key是互斥的
+- cacheManager：用于指定使用哪个缓存管理器，非必需。只有当有多个时才需要使用
+- cacheResolver：用于指定使用那个缓存解析器，非必需。需通过org.springframework.cache.interceptor.CacheResolver接口来实现自己的缓存解析器，并用该参数指定。
 
 ```java
 public class BotRelationServiceImpl implements BotRelationService {
@@ -127,11 +125,9 @@ public class BotRelationServiceImpl implements BotRelationService {
 ```
 
 ### @CacheEvict
-
 @CacheEvict：配置于函数上，通常用在删除方法上，用来从缓存中移除相应数据。除了同@Cacheable一样的参数之外，它还有下面两个参数：
-
-allEntries：非必需，默认为false。当为true时，会移除所有数据。如：@CachEvict(value=”testcache”,allEntries=true)
-beforeInvocation：非必需，默认为false，会在调用方法之后移除数据。当为true时，会在调用方法之前移除数据。 如：@CachEvict(value=”testcache”，beforeInvocation=true)
+- allEntries：非必需，默认为false。当为true时，会移除所有数据。如：@CachEvict(value=”testcache”,allEntries=true)
+- beforeInvocation：非必需，默认为false，会在调用方法之后移除数据。当为true时，会在调用方法之前移除数据。 如：@CachEvict(value=”testcache”，beforeInvocation=true)
 
 ```java
     @Cacheable(value = "emp",key = "#p0.id")
@@ -175,9 +171,7 @@ public class BotRelationServiceImpl implements BotRelationService {
 ```
 
 ## ConcurrentMap Cache
-
 Spring boot默认使用的是SimpleCacheConfiguration，即使用ConcurrentMapCacheManager来实现缓存，ConcurrentMapCache实质是一个ConcurrentHashMap集合对象java内置，所以无需引入其他依赖，也没有额外的配置
-
 ConcurrentMapCache的自动装配声明在SimpleCacheConfiguration中，如果需要也可对它进行额外的装配
 
 ```java
@@ -198,7 +192,7 @@ public ConcurrentMapCacheManager cacheManager() {
 Caffeine是使用Java8对Guava缓存的重写版本，在Spring Boot 2.0中将取代，基于LRU算法实现，支持多种缓存过期策略。具体查看这里 https://www.cnblogs.com/liujinhua306/p/9808500.html，
 
 1，Caffeine参数说明：
-
+```properties
 initialCapacity=[integer]: 初始的缓存空间大小
 maximumSize=[long]: 缓存的最大条数
 maximumWeight=[long]: 缓存的最大权重
@@ -209,11 +203,12 @@ weakKeys: 打开key的弱引用
 weakValues：打开value的弱引用
 softValues：打开value的软引用
 recordStats：开发统计功能
+```
 #注意：
-refreshAfterWrite必须实现LoadingCache，跟expire的区别是，指定时间过后，expire是remove该key，下次访问是同步去获取返回新值，而refresh则是指定时间后，不会remove该key，下次访问会触发刷新，新值没有回来时返回旧值
-expireAfterWrite和expireAfterAccess同事存在时，以expireAfterWrite为准。
-maximumSize和maximumWeight不可以同时使用
-weakValues和softValues不可以同时使用
+- refreshAfterWrite必须实现LoadingCache，跟expire的区别是，指定时间过后，expire是remove该key，下次访问是同步去获取返回新值，而refresh则是指定时间后，不会remove该key，下次访问会触发刷新，新值没有回来时返回旧值
+- expireAfterWrite和expireAfterAccess同事存在时，以expireAfterWrite为准。
+- maximumSize和maximumWeight不可以同时使用
+- weakValues和softValues不可以同时使用
 
 ### 依赖管理
 ```java
