@@ -5,13 +5,15 @@ description: none
 keywords: SpringBoot
 ---
 # SpringBoot 集成缓存
-Spring 提供了对缓存功能的抽象：即允许绑定不同的缓存解决方案（如Caffeine、Ehcache等），但本身不直接提供缓存功能的实现。它支持注解方式使用缓存，非常方便。
+Spring 从 3.1 开始就引入了对 Cache 的支持。定义了 org.springframework.cache.Cache 和 org.springframework.cache.CacheManager 接口来统一不同的缓存技术。并支持使用 JCache（JSR-107）注解简化我们的开发。
+Spring Cache 是作用在方法上的，其核心思想是，当我们在调用一个缓存方法时会把该方法参数和返回结果作为一个键值对存在缓存中。
 
-SpringBoot在annotation的层面实现了数据缓存的功能，基于Spring的AOP技术。所有的缓存配置只是在annotation层面配置，像声明式事务一样。
 
-Spring定义了CacheManager和Cache接口统一不同的缓存技术。其中CacheManager是Spring提供的各种缓存技术的抽象接口。而Cache接口包含缓存的各种操作。
+## Cache 和 CacheManager 接口说明
+- Cache 接口包含缓存的各种操作集合，你操作缓存就是通过这个接口来操作的。
+- Cache 接口下 Spring 提供了各种 xxxCache 的实现，比如：RedisCache、EhCache、ConcurrentMapCache
+- CacheManager 定义了创建、配置、获取、管理和控制多个唯一命名的 Cache。这些 Cache 存在于 CacheManager 的上下文中。
 
-Cache接口下Spring提供了各种xxxCache的实现，如RedisCache，EhCacheCache ,ConcurrentMapCache等；
 
 ## 缓存技术类型与CacheManger
 
@@ -76,7 +78,7 @@ spring.cache.jcache.provider= ＃当多个jcache实现类时，指定选择jcach
 
 ## 缓存注解
 下面是缓存公用接口注释，使用与任何缓存技术
-### @EnableCaching
+## @EnableCaching
 @EnableCaching：在启动类注解@EnableCaching开启缓存　　
 ```java
 @SpringBootApplication
@@ -90,8 +92,8 @@ public class DemoApplication{
 }　
 ```
 
-### @Cacheable	
-@Cacheable：配置了findByName函数的返回值将被加入缓存。同时在查询时，会先从缓存中获取，若不存在才再发起对数据库的访问。
+## @Cacheable	
+@Cacheable 注解就可以将运行结果缓存，以后查询相同的数据，直接从缓存中取，不需要调用方法。
 
 该注解主要有下面几个参数：
 - value、cacheNames：两个等同的参数（cacheNames为Spring 4新增，作为value的别名），用于指定缓存存储的集合名。由于Spring 4中新增了@CacheConfig，因此在Spring 3中原本必须有的value属性，也成为非必需项了
@@ -102,18 +104,102 @@ public class DemoApplication{
 - cacheManager：用于指定使用哪个缓存管理器，非必需。只有当有多个时才需要使用
 - cacheResolver：用于指定使用那个缓存解析器，非必需。需通过org.springframework.cache.interceptor.CacheResolver接口来实现自己的缓存解析器，并用该参数指定。
 
+### cacheNames & value
+@Cacheable 提供两个参数来指定缓存名：value、cacheNames，二者选其一即可。这是 @Cacheable 最简单的用法示例：
 ```java
-public class BotRelationServiceImpl implements BotRelationService {
-    @Override
-    @Cacheable(value = {"newJob"},key = "#p0")
-    public List<NewJob> findAllLimit(int num) {
-        return botRelationRepository.findAllLimit(num);
+@Override
+@Cacheable("menu")
+public Menu findById(String id) {
+    Menu menu = this.getById(id);
+    if (menu != null){
+        System.out.println("menu.name = " + menu.getName());
     }
-    .....
+    return menu;
+}
+
+```
+在这个例子中，findById 方法与一个名为 menu 的缓存关联起来了。调用该方法时，会检查 menu 缓存，如果缓存中有结果，就不会去执行方法了。
+### 关联多个缓存名
+其实，按照官方文档，@Cacheable 支持同一个方法关联多个缓存。这种情况下，当执行方法之前，这些关联的每一个缓存都会被检查，而且只要至少其中一个缓存命中了，那么这个缓存中的值就会被返回。示例：
+```java
+@Override
+    @Cacheable({"menu", "menuById"})
+    public Menu findById(String id) {
+        Menu menu = this.getById(id);
+        if (menu != null){
+            System.out.println("menu.name = " + menu.getName());
+        }
+        return menu;
+    }
+ 
+---------
+@GetMapping("/findById/{id}")
+public Menu findById(@PathVariable("id")String id){
+    Menu menu0 = menuService.findById("fe278df654adf23cf6687f64d1549c0a");
+    Menu menu2 = menuService.findById("fb6106721f289ebf0969565fa8361c75");
+    return menu0;
 }
 ```
+### key & keyGenerator
+一个缓存名对应一个被注解的方法，但是一个方法可能传入不同的参数，那么结果也就会不同，这应该如何区分呢？这就需要用到 key 。在 spring 中，key 的生成有两种方式：显式指定和使用 keyGenerator 自动生成。
+#### KeyGenerator 自动生成
+当我们在声明 @Cacheable 时不指定 key 参数，则该缓存名下的所有 key 会使用 KeyGenerator 根据参数 自动生成。spring 有一个默认的 SimpleKeyGenerator ，在 spring boot 自动化配置中，这个会被默认注入。生成规则如下：
+- 如果该缓存方法没有参数，返回 SimpleKey.EMPTY ；
+- 如果该缓存方法有一个参数，返回该参数的实例 ；
+- 如果该缓存方法有多个参数，返回一个包含所有参数的 SimpleKey ；
+默认的 key 生成器要求参数具有有效的 hashCode() 和 equals() 方法实现。另外，keyGenerator 也支持自定义， 并通过 keyGenerator 来指定。关于 KeyGenerator 这里不做详细介绍，有兴趣的话可以去看看源码，其实就是使用 hashCode 进行加乘运算。跟 String 和 ArrayList 的 hash 计算类似。
+#### 显式指定 key
+相较于使用 KeyGenerator 生成，spring 官方更推荐显式指定 key 的方式，即指定 @Cacheable 的 key 参数。
+即便是显式指定，但是 key 的值还是需要根据参数的不同来生成，那么如何实现动态拼接呢？SpEL（Spring Expression Language，Spring 表达式语言） 能做到这一点。下面是一些使用 SpEL 生成 key 的例子。
+```java
+@Override
+    @Cacheable(value = {"menuById"}, key = "#id")
+    public Menu findById(String id) {
+        Menu menu = this.getById(id);
+        if (menu != null){
+            System.out.println("menu.name = " + menu.getName());
+        }
+        return menu;
+    }
+ 
+    @Override
+    @Cacheable(value = {"menuById"}, key = "'id-' + #menu.id")
+    public Menu findById(Menu menu) {
+        return menu;
+    }
+ 
+    @Override
+    @Cacheable(value = {"menuById"}, key = "'hash' + #menu.hashCode()")
+    public Menu findByHash(Menu menu) {
+        return menu;
+    }
+```
+注意：官方说 key 和 keyGenerator 参数是互斥的，同时指定两个会导致异常。
 
-### @CachePut
+### cacheManager & cacheResolver
+CacheManager，缓存管理器是用来管理（检索）一类缓存的。通常来讲，缓存管理器是与缓存组件类型相关联的。我们知道，spring 缓存抽象的目的是为使用不同缓存组件类型提供统一的访问接口，以向开发者屏蔽各种缓存组件的差异性。那么  CacheManager 就是承担了这种屏蔽的功能。spring 为其支持的每一种缓存的组件类型提供了一个默认的 manager，如：RedisCacheManager 管理 redis 相关的缓存的检索、EhCacheManager 管理 ehCache 相关的缓等。
+
+CacheResolver，缓存解析器是用来管理缓存管理器的，CacheResolver 保持一个 cacheManager 的引用，并通过它来检索缓存。CacheResolver 与 CacheManager 的关系有点类似于 KeyGenerator 跟 key。spring 默认提供了一个 SimpleCacheResolver，开发者可以自定义并通过 @Bean 来注入自定义的解析器，以实现更灵活的检索。
+
+大多数情况下，我们的系统只会配置一种缓存，所以我们并不需要显式指定 cacheManager 或者 cacheResolver。但是 spring 允许我们的系统同时配置多种缓存组件，这种情况下，我们需要指定。指定的方式是使用 @Cacheable 的 cacheManager 或者 cacheResolver 参数。
+
+注意：按照官方文档，cacheManager 和 cacheResolver 是互斥参数，同时指定两个可能会导致异常。
+
+### sync
+是否同步，true/false。在一个多线程的环境中，某些操作可能被相同的参数并发地调用，这样同一个 value 值可能被多次计算（或多次访问 db），这样就达不到缓存的目的。针对这些可能高并发的操作，我们可以使用 sync 参数来告诉底层的缓存提供者将缓存的入口锁住，这样就只能有一个线程计算操作的结果值，而其它线程需要等待，这样就避免了 n-1 次数据库访问。
+sync = true 可以有效的避免缓存击穿的问题。
+### condition
+调用前判断，缓存的条件。有时候，我们可能并不想对一个方法的所有调用情况进行缓存，我们可能想要根据调用方法时候的某些参数值，来确定是否需要将结果进行缓存或者从缓存中取结果。比如当我根据年龄查询用户的时候，我只想要缓存年龄大于 35 的查询结果。那么 condition 能实现这种效果。
+condition 接收一个结果为 true 或 false 的表达式，表达式同样支持 SpEL 。如果表达式结果为 true，则调用方法时会执行正常的缓存逻辑（查缓存-有就返回-没有就执行方法-方法返回不空就添加缓存）；否则，调用方法时就好像该方法没有声明缓存一样（即无论传入了什么参数或者缓存中有些什么值，都会执行方法，并且结果不放入缓存）
+### unless
+执行后判断，不缓存的条件。unless 接收一个结果为 true 或 false 的表达式，表达式支持 SpEL。当结果为 true 时，不缓存。
+可以看到，两次调用的结果都没有缓存。说明在这种情况下，condition 比 unless 的优先级高。总结起来就是：
+condition 不指定相当于 true，unless 不指定相当于 false
+当 condition = false，一定不会缓存；
+当 condition = true，且 unless = true，不缓存；
+当 condition = true，且 unless = false，缓存；
+
+## @CachePut
 @CachePut：主要针对方法配置，能够根据方法的请求参数对其结果进行缓存，和 @Cacheable 不同的是，它每次都会触发真实方法的调用 。简单来说就是用户更新缓存数据。但需要注意的是该注解的value 和 key 必须与要更新的缓存相同，也就是与@Cacheable 相同。示例：
 ```java
     @CachePut(value = "newJob", key = "#p0")  //按条件更新缓存
@@ -124,7 +210,7 @@ public class BotRelationServiceImpl implements BotRelationService {
     }
 ```
 
-### @CacheEvict
+## @CacheEvict
 @CacheEvict：配置于函数上，通常用在删除方法上，用来从缓存中移除相应数据。除了同@Cacheable一样的参数之外，它还有下面两个参数：
 - allEntries：非必需，默认为false。当为true时，会移除所有数据。如：@CachEvict(value=”testcache”,allEntries=true)
 - beforeInvocation：非必需，默认为false，会在调用方法之后移除数据。当为true时，会在调用方法之前移除数据。 如：@CachEvict(value=”testcache”，beforeInvocation=true)
@@ -188,111 +274,278 @@ public ConcurrentMapCacheManager cacheManager() {
 ```
 
 ## Caffeine Cache
+Caffeine是使用Java8对Guava缓存的重写版本，在Spring Boot 2.0中将取代Guava。如果出现Caffeine，CaffeineCacheManager将会自动配置。
 
-Caffeine是使用Java8对Guava缓存的重写版本，在Spring Boot 2.0中将取代，基于LRU算法实现，支持多种缓存过期策略。具体查看这里 https://www.cnblogs.com/liujinhua306/p/9808500.html，
+### Maven依赖管理
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-cache</artifactId>
+</dependency>
+<dependency>
+    <groupId>com.github.ben-manes.caffeine</groupId>
+    <artifactId>caffeine</artifactId>
+    <version>2.6.0</version>
+</dependency>
+```
+### 开启缓存的支持
+使用@EnableCaching注解让Spring Boot开启对缓存的支持
+```java
 
-1，Caffeine参数说明：
+@SpringBootApplication
+@EnableCaching// 开启缓存，需要显示的指定
+public class SpringBootStudentCacheCaffeineApplication {
+ 
+    public static void main(String[] args) {
+        SpringApplication.run(SpringBootStudentCacheCaffeineApplication.class, args);
+    }
+}
+```
+### 配置文件
+新增对缓存的特殊配置，如最大容量、过期时间等
+```properties
+spring.cache.cache-names=people
+spring.cache.caffeine.spec=initialCapacity=50,maximumSize=500,expireAfterWrite=10s,refreshAfterWrite=5s
+```
+如果使用了refreshAfterWrite配置还必须指定一个CacheLoader，如：
+```java
+
+/**
+ * 必须要指定这个Bean，refreshAfterWrite=5s这个配置属性才生效
+ *
+ * @return
+ */
+@Bean
+public CacheLoader<Object, Object> cacheLoader() {
+ 
+    CacheLoader<Object, Object> cacheLoader = new CacheLoader<Object, Object>() {
+ 
+        @Override
+        public Object load(Object key) throws Exception {
+            return null;
+        }
+ 
+        // 重写这个方法将oldValue值返回回去，进而刷新缓存
+        @Override
+        public Object reload(Object key, Object oldValue) throws Exception {
+            return oldValue;
+        }
+    };
+ 
+    return cacheLoader;
+}
+```
+### Caffeine配置说明
 ```properties
 initialCapacity=[integer]: 初始的缓存空间大小
 maximumSize=[long]: 缓存的最大条数
 maximumWeight=[long]: 缓存的最大权重
 expireAfterAccess=[duration]: 最后一次写入或访问后经过固定时间过期
 expireAfterWrite=[duration]: 最后一次写入后经过固定时间过期
-refreshAfterWrite=[duration]: 创建缓存或者最近一次更新缓存后经过固定的时间间隔，刷新缓存 refreshAfterWrite requires a LoadingCache
+refreshAfterWrite=[duration]: 创建缓存或者最近一次更新缓存后经过固定的时间间隔，刷新缓存
 weakKeys: 打开key的弱引用
 weakValues：打开value的弱引用
 softValues：打开value的软引用
 recordStats：开发统计功能
 ```
-#注意：
+**注意：**
 - refreshAfterWrite必须实现LoadingCache，跟expire的区别是，指定时间过后，expire是remove该key，下次访问是同步去获取返回新值，而refresh则是指定时间后，不会remove该key，下次访问会触发刷新，新值没有回来时返回旧值
 - expireAfterWrite和expireAfterAccess同事存在时，以expireAfterWrite为准。
 - maximumSize和maximumWeight不可以同时使用
 - weakValues和softValues不可以同时使用
 
-### 依赖管理
+### SpringBoot 集成 Caffeine
+直接引入 Caffeine 依赖，然后使用 Caffeine 方法实现缓存。
 ```java
-        <!-- 使用  caffeine https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-            <version>2.6.0</version>
-        </dependency>
-```
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import java.util.concurrent.TimeUnit;
 
-### Caffeine配置
-通过配置文件来设置Caffeine
-```properties
-spring:
-    cache:
-        cache-names: outLimit，notOutLimit
-        caffeine:
-            spec: initialCapacity=50,maximumSize=500,expireAfterWrite=5s,refreshAfterWrite=7s #
-        type: caffeine 
-```
-
-通过bean装配
-```java
-@Bean()
-@Primary
-public CacheManager cacheManagerWithCaffeine() {
-    CaffeineCacheManager cacheManager = new CaffeineCacheManager();
-    Caffeine caffeine = Caffeine.newBuilder()
-            .initialCapacity(100) //cache的初始容量值
-            .maximumSize(1000) //maximumSize用来控制cache的最大缓存数量，maximumSize和maximumWeight不可以同时使用，
-            .maximumWeight(100) //控制最大权重
-            .expireAfter(customExpireAfter) //自定义过期
-            .refreshAfterWrite(5, TimeUnit.SECONDS);  //使用refreshAfterWrite必须要设置cacheLoader
-    cacheManager.setCaffeine(caffeine);
-    cacheManager.setCacheLoader(cacheLoader); //缓存加载方案
-    cacheManager.setCacheNames(getNames());   //缓存名称列表
-    cacheManager.setAllowNullValues(false);
-    return cacheManager;
-}
-```
-配置文件结合Bean装配
-```java
-@Value("${caffeine.spec}")
-private String caffeineSpec;
-
-@Bean(name = "caffeineSpec")
-public CacheManager cacheManagerWithCaffeineFromSpec(){
-　　CaffeineSpec spec = CaffeineSpec.parse(caffeineSpec);
-　　Caffeine caffeine = Caffeine.from(spec);  // 或使用 Caffeine caffeine = Caffeine.from(caffeineSpec);
-　　CaffeineCacheManager cacheManager = new CaffeineCacheManager();
-　　cacheManager.setCaffeine(caffeine);
-　　cacheManager.setCacheNames(getNames());
-　　return cacheManager;
-}
-```
-实现cacheLoader
-CacheLoader是cache的一种加载策略，key不存在或者key过期之类的都可以通过CacheLoader来自定义获得/重新获得数据。使用refreshAfterWrite必须要设置cacheLoader
-```java
 @Configuration
 public class CacheConfig {
 
     @Bean
-    public CacheLoader<Object, Object> cacheLoader() {
-        CacheLoader<Object, Object> cacheLoader = new CacheLoader<Object, Object>() {
-            @Override
-            public Object load(Object key) throws Exception {
-                return null;
-            }
-            // 达到配置文件中的refreshAfterWrite所指定的时候回处罚这个事件方法
-            @Override
-            public Object reload(Object key, Object oldValue) throws Exception {                
-                return oldValue; //可以在这里处理重新加载策略，本例子，没有处理重新加载，只是返回旧值。
-            }
-        };
-        return cacheLoader;
+    public Cache caffeineCache() {
+        return Caffeine.newBuilder()
+                // 设置最后一次写入或访问后经过固定时间过期
+                .expireAfterWrite(60, TimeUnit.SECONDS)
+                // 初始的缓存空间大小
+                .initialCapacity(100)
+                // 缓存的最大条数
+                .maximumSize(1000)
+                .build();
     }
 
 }
 ```
-CacheLoader实质是一个监听，处上述load与reload还包含，expireAfterCreate，expireAfterUpdate，expireAfterRead等可以很灵活的配置CacheLoader
+缓存的使用
+```java
+
+@Slf4j
+@Service
+public class UserInfoServiceImpl implements UserInfoService {
+
+    /**
+     * 模拟数据库存储数据
+     */
+    private HashMap userInfoMap = new HashMap<>();
+
+    @Autowired
+    Cache<String, Object> caffeineCache;
+
+    @Override
+    public void addUserInfo(UserInfo userInfo) {
+        log.info("create");
+        userInfoMap.put(userInfo.getId(), userInfo);
+        // 加入缓存
+        caffeineCache.put(String.valueOf(userInfo.getId()),userInfo);
+    }
+
+    @Override
+    public UserInfo getByName(Integer id) {
+        // 先从缓存读取
+        caffeineCache.getIfPresent(id);
+        UserInfo userInfo = (UserInfo) caffeineCache.asMap().get(String.valueOf(id));
+        if (userInfo != null){
+            return userInfo;
+        }
+        // 如果缓存中不存在，则从库中查找
+        log.info("get");
+        userInfo = userInfoMap.get(id);
+        // 如果用户信息不为空，则加入缓存
+        if (userInfo != null){
+            caffeineCache.put(String.valueOf(userInfo.getId()),userInfo);
+        }
+        return userInfo;
+    }
+
+    @Override
+    public UserInfo updateUserInfo(UserInfo userInfo) {
+        log.info("update");
+        if (!userInfoMap.containsKey(userInfo.getId())) {
+            return null;
+        }
+        // 取旧的值
+        UserInfo oldUserInfo = userInfoMap.get(userInfo.getId());
+        // 替换内容
+        if (!StringUtils.isEmpty(oldUserInfo.getAge())) {
+            oldUserInfo.setAge(userInfo.getAge());
+        }
+        if (!StringUtils.isEmpty(oldUserInfo.getName())) {
+            oldUserInfo.setName(userInfo.getName());
+        }
+        if (!StringUtils.isEmpty(oldUserInfo.getSex())) {
+            oldUserInfo.setSex(userInfo.getSex());
+        }
+        // 将新的对象存储，更新旧对象信息
+        userInfoMap.put(oldUserInfo.getId(), oldUserInfo);
+        // 替换缓存中的值
+        caffeineCache.put(String.valueOf(oldUserInfo.getId()),oldUserInfo);
+        return oldUserInfo;
+    }
+
+    @Override
+    public void deleteById(Integer id) {
+        log.info("delete");
+        userInfoMap.remove(id);
+        // 从缓存中删除
+        caffeineCache.asMap().remove(String.valueOf(id));
+    }
+
+}
+```
+
+### SpringBoot 集成 Caffeine
+引入 Caffeine 和 Spring Cache 依赖，使用 SpringCache 注解方法实现缓存。
+```java
+@Configuration
+public class CacheConfig {
+
+    /**
+     * 配置缓存管理器
+     *
+     * @return 缓存管理器
+     */
+    @Bean("caffeineCacheManager")
+    public CacheManager cacheManager() {
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
+        cacheManager.setCaffeine(Caffeine.newBuilder()
+                // 设置最后一次写入或访问后经过固定时间过期
+                .expireAfterAccess(60, TimeUnit.SECONDS)
+                // 初始的缓存空间大小
+                .initialCapacity(100)
+                // 缓存的最大条数
+                .maximumSize(1000));
+        return cacheManager;
+    }
+
+}
+```
+
+```java
+
+@Slf4j
+@Service
+@CacheConfig(cacheNames = "caffeineCacheManager")
+public class UserInfoServiceImpl implements UserInfoService {
+
+    /**
+     * 模拟数据库存储数据
+     */
+    private HashMap userInfoMap = new HashMap<>();
+
+    @Override
+    @CachePut(key = "#userInfo.id")
+    public void addUserInfo(UserInfo userInfo) {
+        log.info("create");
+        userInfoMap.put(userInfo.getId(), userInfo);
+    }
+
+    @Override
+    @Cacheable(key = "#id")
+    public UserInfo getByName(Integer id) {
+        log.info("get");
+        return userInfoMap.get(id);
+    }
+
+    @Override
+    @CachePut(key = "#userInfo.id")
+    public UserInfo updateUserInfo(UserInfo userInfo) {
+        log.info("update");
+        if (!userInfoMap.containsKey(userInfo.getId())) {
+            return null;
+        }
+        // 取旧的值
+        UserInfo oldUserInfo = userInfoMap.get(userInfo.getId());
+        // 替换内容
+        if (!StringUtils.isEmpty(oldUserInfo.getAge())) {
+            oldUserInfo.setAge(userInfo.getAge());
+        }
+        if (!StringUtils.isEmpty(oldUserInfo.getName())) {
+            oldUserInfo.setName(userInfo.getName());
+        }
+        if (!StringUtils.isEmpty(oldUserInfo.getSex())) {
+            oldUserInfo.setSex(userInfo.getSex());
+        }
+        // 将新的对象存储，更新旧对象信息
+        userInfoMap.put(oldUserInfo.getId(), oldUserInfo);
+        // 返回新对象信息
+        return oldUserInfo;
+    }
+
+    @Override
+    @CacheEvict(key = "#id")
+    public void deleteById(Integer id) {
+        log.info("delete");
+        userInfoMap.remove(id);
+    }
+
+} 
+```
 
 ## EHCache
-
 EhCache 是一个纯Java的进程内缓存框架，具有快速、精干等特点，是Hibernate中默认CacheProvider。Ehcache是一种广泛使用的开源Java分布式缓存。主要面向通用缓存,Java EE和轻量级容器。它具有内存和磁盘存储，缓存加载器,缓存扩展,缓存异常处理程序,一个gzip缓存servlet过滤器,支持REST和SOAP api等特点。
 
 ### 导入依赖

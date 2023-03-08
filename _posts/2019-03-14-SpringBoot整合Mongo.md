@@ -121,3 +121,5 @@ public class ArticleServiceImpl2 implements ArticleService2 {
 }
 
 ```
+
+## SpringBoot整合MongoDb去除_class

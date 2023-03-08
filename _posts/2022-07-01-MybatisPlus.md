@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: MybatisPlus
+categories: [MybatisPlus,Mybatis]
 description: none
 keywords: MybatisPlus
 ---

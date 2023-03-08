@@ -72,7 +72,7 @@ public class RestConfig {
     @Bean
     public RestTemplate restTemplate() {
         return builder.build();
-    }```
+    }
 ```
 2. 创建配置文件
 ```java
