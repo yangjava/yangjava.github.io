@@ -4,7 +4,31 @@ categories: Kubernetes
 description: none
 keywords: Kubernetes
 ---
-# Kubernetes组件
+# Kubernetes安装配置指南
+Kubernetes系统由一组可执行程序组成，用户可以通过GitHub上的Kubernetes项目页下载编译好的二进制包，或者下载源代码并编译后进行安装。
+
+## 系统要求
+Kubernetes需要容器运行时（Container Runtime Interface，CRI）的支持，目前官方支持的容器运行时包括：Docker、Containerd、CRI-O和frakti。
+
+## kubeadm工具
+最简单的方法是使用yum install kubernetes命令安装Kubernetes集群，但仍需修改各组件的启动参数，才能完成对Kubernetes集群的配置，整个过程比较复杂，也容易出错。Kubernetes从1.4版本开始引入了命令行工具kubeadm，致力于简化集群的安装过程，并解决Kubernetes集群的高可用问题。在Kubernetes 1.13版本中，kubeadm工具进入GA阶段，宣称已经为生产环境应用准备就绪。
+
+## 安装kubeadm和相关工具
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 试玉要烧三日满，辨材须待七年期。——白居易《放言五首·其三》        
 一个 Kubernetes 集群一般包含一个 Master 节点和多个 Node 节点，一个节点可以看成是一台物理机或虚拟机。
 
