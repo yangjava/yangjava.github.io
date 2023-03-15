@@ -327,6 +327,11 @@ Agent和业务程序运行在一起，采集链路及其它数据，通过gRPC�
 
 ```
 
+需要单独说明的：
+
+如果你是用的是8.7.0之前的版本，skywalking的服务端和agent的代码是放在同一个项目工程skywalking下的。
+
+如果使用8.7.0之后的版本，agent的相关代码被抽离出skywalkin当中，不同的语言会对应不同的agent，需要根据需要去自行选择，比如java使用skywalking-java
 
 
 

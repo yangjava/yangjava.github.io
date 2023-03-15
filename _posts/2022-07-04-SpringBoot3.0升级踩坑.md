@@ -1,23 +1,65 @@
 ---
 layout: post
-categories: SpringBoot3.0
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot3.0
 ---
-一. 编译报错，import javax.servlet.*; 不存在
-这个报错主要是Spring Boot3.0已经为所有依赖项从 Java EE 迁移到 Jakarta EE API，导致 servlet 包名的修改，Spring团队这样做的原因，主要是避免 Oracle 的版权问题，解决办法很简单，两步走：
+# SpringBoot3.0升级指南
+如果您当前运行的是 Spring Boot 的早期版本，官方强烈建议您在迁移到 Spring Boot 3.0 之前升级到 Spring Boot 2.7。
 
-1 添加 jakarta.servlet 依赖
+官方整理了一份专门的迁移指南(https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.0-Migration-Guide)，以帮助您升级现有的 Spring Boot 2.7 应用程序。
 
+## 功能变化
+- 基于Java 17 和支持Java 19
+Spring Boot 3.0 需要 Java 17 作为最低版本。 如果您当前使用的是 Java 8 或 Java 11，则需要先升级 JDK，然后才能开发 Spring Boot 3.0 应用程序。
+- 第三方库升级
+Spring Boot 3.0 建立在 Spring Framework 6 之上，并且需要 Spring Framework 6。
+
+
+
+## 升级指南
+Maven依赖管理
+```xml
+<dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>3.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+```
+### Spring Framework 6.0
+Spring框架升级到6.0
+
+### servlet升级
+编译报错，import javax.servlet.*; 不存在。这个报错主要是Spring Boot3.0已经为所有依赖项从 Java EE 迁移到 Jakarta EE API，导致 servlet 包名的修改，Spring团队这样做的原因，主要是避免 Oracle 的版权问题
+添加 jakarta.servlet 依赖
+```xml
 <dependency>
     <groupId>jakarta.servlet</groupId>
     <artifactId>jakarta.servlet-api</artifactId>
 </dependency>
-复制
-修改项目内所有代码的导入依赖修改前：
-import javax.servlet.*
-修改后：
-import jakarta.servlet.*
+```
+修改项目内所有代码的导入依赖修改`import javax.servlet.*`为`import jakarta.servlet.*`
+
+### apollo配置升级
+使用新的apollo版本号`2.0.0`
+```xml
+       <dependency>
+            <groupId>com.ctrip.framework.apollo</groupId>
+            <artifactId>apollo-client</artifactId>
+            <version>${apollo-client.version}</version>
+        </dependency>
+```
+
+### Druid数据源
+
+
+
 二. 附带的众多依赖包升级，导致的部分代码写法过期报警
 2.1 Thymeleaf升级到3.1.0.M2，日志打印的报警
 14:40:39.936 [http-nio-84-exec-15] WARN  o.t.s.p.StandardIncludeTagProcessor - [doProcess,67] - [THYMELEAF][http-nio-84-exec-15][admin/goods/goods] Deprecated attribute {th:include,data-th-include} found in template admin/goods/goods, line 4, col 15. Please use {th:insert,data-th-insert} instead, this deprecated attribute will be removed in future versions of Thymeleaf.

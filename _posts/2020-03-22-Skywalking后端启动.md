@@ -4,7 +4,7 @@ categories: Skywalking
 description: none
 keywords: Skywalking
 ---
-# 启动OAP
+# Skywalking后端启动
 
 
 启动OAP非常简单，OAP的代码是源码根目录下的oap-server，入口函数是 org.apache.skywalking.oap.server.starter 包下面的OAPServerStartUp类。直接启动即可。

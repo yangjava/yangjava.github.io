@@ -212,21 +212,21 @@ dataSourceClassName 和 jdbcUrl缺省都是空。
 
 ①导入druid-spring-boot-starter包(推荐1.2.21版本)
 注意：此包1.1.10后的版本数据监控中心做了调整需要自己新增配置类
-```properties
+```xml
 <!--引入druid数据源 1.1.10 此版本的数据监控中心可以直接使用-->
-<dependency>
-<groupId>com.alibaba</groupId>
-<artifactId>druid-spring-boot-starter</artifactId>
-<version>1.1.10</version>
-</dependency>
+    <dependency>
+        <groupId>com.alibaba</groupId>
+        <artifactId>druid-spring-boot-starter</artifactId>
+        <version>1.1.10</version>
+    </dependency>
 ```
 
-```properties
+```xml
  <!--druid数据源 1.1.21 此版本的数据监控中心增加了登录界面需要增加配置类-->
 <dependency>
-<groupId>com.alibaba</groupId>
-<artifactId>druid-spring-boot-starter</artifactId>
-<version>1.1.21</version>
+    <groupId>com.alibaba</groupId>
+    <artifactId>druid-spring-boot-starter</artifactId>
+    <version>1.1.21</version>
 </dependency>
 ```
 
