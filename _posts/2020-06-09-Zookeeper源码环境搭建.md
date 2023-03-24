@@ -5,11 +5,9 @@ description: none
 keywords: Zookeeper
 ---
 # Zookeeper源码环境搭建
-纵使晴明无雨色，入云深处亦沾衣。  ——张旭·《山行留客》
 Zookeeper是开源高可用的分布式协同服务，在分布式系统中应用广泛，代码量适中，适合阅读和学习。首先从开发环境的搭建开始介绍。
 
 ## 源码获取
-
 Zookeeper源码Github地址[https://github.com/apache/zookeeper](https://github.com/apache/zookeeper)
 
 Zookeeper官网（Apache）[https://zookeeper.apache.org/releases.html](https://zookeeper.apache.org/releases.html)

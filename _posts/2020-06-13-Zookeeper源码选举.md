@@ -4,11 +4,11 @@ categories: Zookeeper
 description: none
 keywords: Zookeeper
 ---
-# Zookeeper源码Leader选举
+# Zookeeper源码选举
 Zookeeper中分为Leader、Follower和Observer三个角色，各个角色扮演不同的业务功能。在Leader故障之后，Follower也会选举一个新的Leader。
 
 ## 选举概述
-Leader为集群中的主节点，一个集群只有一个Leader，Leader负责处理Zookeeper的事物操作，也就是更改Zookeeper数据和状态的操作。
+Leader为集群中的主节点，一个集群只有一个Leader，Leader负责处理Zookeeper的事务操作，也就是更改Zookeeper数据和状态的操作。
 
 Follower负责处理客户端的读请求和参与选举。同时负责处理Leader发出的事物提交请求，也就是提议（proposal）。
 

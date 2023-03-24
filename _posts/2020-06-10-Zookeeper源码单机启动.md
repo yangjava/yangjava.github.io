@@ -5,58 +5,73 @@ description: none
 keywords: Zookeeper
 ---
 # Zookeeper源码单机启动
-Zookeeper可以单机安装，这种应用模式主要用在测试或demo的情况下，在生产环境下一般不会采用。
+`Zookeeper`可以单机安装启动调试，这种应用模式主要用在测试或demo的情况下，在生产环境下一般不会采用。
 
-## Zookeeper单机初始化QuorumPeerMain
+## 单机模式
+首先，我们先分析一下`Zookeeper`单机模式下，需要实现哪些核心功能。
+- Zookeeper解析配置文件
+- 创建服务器实例ZookeeperServer并运行，初始化执行链
+- watch机制
 
-Zookeeper统一由 QuorumPeerMain 作为启动类。无论是单机版还是集群模式启动Zookeeper服务器，QuorumPeerMain 都作为启动入口。
+下面我们基于以上功能点进行Zookeeper单机模式源码分析。
 
-### QuorumPeerMain启动类
-
-无论单机或集群，在zkServer.cmd和zkServer.sh中都配置了QuorumPeerMain作为启动入口类。
-```java
+## Zookeeper单机启动入口
+`Zookeeper`统一由`QuorumPeerMain`作为启动类。无论是单机版还是集群模式启动`Zookeeper`服务器，`QuorumPeerMain` 都作为启动入口。
+```
 org.apache.zookeeper.server.quorum.QuorumPeerMain#main
 ```
 
+## Zookeeper解析配置文件
+Zookeeper单机模式下需要解析配置文件，下面让我们来研究一下。首先我们从入口开始查看源码
+
 ### 初始化QuorumPeerMain
+初始化`QuorumPeerMain`对象，并执行`initializeAndRun`方法。
 
-初始化**QuorumPeerMain**对象，并执行initializeAndRun方法。
-
-```
-public static void main(String[] args) {
+```java
+    public static void main(String[] args) {
+        // 初始化QuorumPeerMain
         QuorumPeerMain main = new QuorumPeerMain();
         try {
-            main.initializeAndRun(args);
+        // 解析配置文件信息    
+        main.initializeAndRun(args);
         } catch (IllegalArgumentException e) {
-            LOG.error("Invalid arguments, exiting abnormally", e);
-            LOG.info(USAGE);
-            System.err.println(USAGE);
-            System.exit(2);
+        LOG.error("Invalid arguments, exiting abnormally", e);
+        LOG.info(USAGE);
+        System.err.println(USAGE);
+        System.exit(2);
         } catch (ConfigException e) {
-            LOG.error("Invalid config, exiting abnormally", e);
-            System.err.println("Invalid config, exiting abnormally");
-            System.exit(2);
+        LOG.error("Invalid config, exiting abnormally", e);
+        System.err.println("Invalid config, exiting abnormally");
+        System.exit(2);
         } catch (DatadirException e) {
-            LOG.error("Unable to access datadir, exiting abnormally", e);
-            System.err.println("Unable to access datadir, exiting abnormally");
-            System.exit(3);
+        LOG.error("Unable to access datadir, exiting abnormally", e);
+        System.err.println("Unable to access datadir, exiting abnormally");
+        System.exit(3);
         } catch (AdminServerException e) {
-            LOG.error("Unable to start AdminServer, exiting abnormally", e);
-            System.err.println("Unable to start AdminServer, exiting abnormally");
-            System.exit(4);
+        LOG.error("Unable to start AdminServer, exiting abnormally", e);
+        System.err.println("Unable to start AdminServer, exiting abnormally");
+        System.exit(4);
         } catch (Exception e) {
-            LOG.error("Unexpected exception, exiting abnormally", e);
-            System.exit(1);
+        LOG.error("Unexpected exception, exiting abnormally", e);
+        System.exit(1);
         }
         LOG.info("Exiting normally");
         System.exit(0);
-    }
+        }
 ```
-QuorumPeerMain.main()接受至少一个参数，一般就一个参数，参数为zoo.cfg文件路径。main方法中没有很多的业务代码，实例化了一个QuorumPeerMain 对象，然后调用`main.initializeAndRun(args)`
+`QuorumPeerMain.main()`接受至少一个参数，该参数通过Java的main方法的参数入口传递进来，main方法中没有很多的业务代码，实例化了一个`QuorumPeerMain`对象，然后调用`main.initializeAndRun(args)`。
 
-## 解析配置文件
 
-```
+## 单机解析配置文件
+单机模式下解析配置文件通过`main.initializeAndRun(args)`来完成。Zookeeper单机下配置有两种形式。
+- 使用配置文件。通过一个参数，参数为zoo.cfg文件路径。
+- 使用命令行参数。命令行配置多个（2-4）参数：`port dataDir tickTime maxClientCnxns`
+直接在命令指定对应的配置，这种情况只有在单机的时候才会使用，包含以下几个参数
+  - port，必填，sever监听的端口
+  - dataDir，必填，数据所在的目录
+  - tickTime，选填
+  - maxClientCnxns，选填，最多可处理的客户端连接数
+```java
 protected void initializeAndRun(String[] args)
         throws ConfigException, IOException, AdminServerException
     {
@@ -84,21 +99,12 @@ protected void initializeAndRun(String[] args)
         }
     }
 ```
-
-1. 解析配置，如果传入的是配置文件(参数只有一个)，解析配置文件并初始化QuorumPeerConfig
-2. 启动清理文件的线程
-3. 判断是单机还是集群
-    1. 集群：只有一个参数，并且配置了多个server
-    2. 单机：上面的条件不满足，一般在启动的使用了以下两种配置的一种
-        1. 使用的是文件配置，但是没有配置多台server
-        2. 命令行配置多个（2-4）参数：port dataDir [tickTime] [maxClientCnxns]
-        
-配置解析主要有两种情况
-1. 使用配置文件
-2. 使用命令行参数
+- 解析配置，initializeAndRun方法实例化QuorumPeerConfig对象，如果传入的是配置文件(参数只有一个)，通过parse()来解析zoo.cfg文件中的配置文件并初始化QuorumPeerConfig，QuorumPeerConfig包含了Zookeeper整个应用的配置属性。
+- 启动清理文件的线程。开启一个DatadirCleanupManager对象来开启一个Timer用于清除并创建管理新的DataDir相关的数据。
+- 判断是单机还是集群，如果是集群：只有一个参数，并且配置了多个server。如果只有一个参数，但是没有配置多台server一般在启动的使用了单机配置。
+最后进行程序的启动，因为Zookeeper分为单机和集群模式，所以分为两种不同的启动方式，当zoo.cfg文件中配置了standaloneEnabled=true为单机模式，如果配置server.0,server.1......集群节点，则为集群模式.
 
 ### 配置文件解析
-
 配置文件解析通过`org.apache.zookeeper.server.quorum.QuorumPeerConfig#parse`解析
 
 ```java
@@ -184,31 +190,11 @@ protected void initializeAndRun(String[] args)
         }
     }
 ```
+- 先校验文件的合法性，主要判断是否是绝对路径，文件位置是否存在。
+- 配置文件是使用Java的properties形式写的，所以可以通过Properties.load来解析，将解析出来的key、value赋值给对应的配置，最后将参数封装在`QuorumPeerConfig`中
 
-
-1. 先校验文件的合法性
-2. 配置文件是使用Java的properties形式写的，所以可以通过Properties.load来解析
-3. 将解析出来的key、value赋值给对应的配置
-
-
-### 使用命令行参数
-
-直接在命令指定对应的配置，这种情况只有在单机的时候才会使用，包含以下几个参数
-
-- port，必填，sever监听的端口
-- dataDir，必填，数据所在的目录
-- tickTime，选填
-- maxClientCnxns，选填，最多可处理的客户端连接数
-
-
-
-initializeAndRun方法则通过实例化QuorumPeerConfig对象，通过parseProperties()来解析zoo.cfg文件中的配置，QuorumPeerConfig包含了Zookeeper整个应用的配置属性。接着开启一个DatadirCleanupManager对象来开启一个Timer用于清除并创建管理新的DataDir相关的数据。
-
-最后进行程序的启动，因为Zookeeper分为单机和集群模式，所以分为两种不同的启动方式，当zoo.cfg文件中配置了standaloneEnabled=true为单机模式，如果配置server.0,server.1......集群节点，则为集群模式.
-
-### 创建服务器实例ZookeeperServer
-
-当配置了standaloneEnabled=true 或者没有配置集群节点（sever.*）时，Zookeeper使用单机环境启动。单机环境启动入口为ZooKeeperServerMain类，ZooKeeperServerMain类中持有ServerCnxnFactory、ContainerManager和AdminServer对象;
+## 创建服务器实例ZookeeperServer
+当配置了standaloneEnabled=true 或者没有配置集群节点（sever.*）时，Zookeeper使用单机环境启动。单机环境启动入口为ZooKeeperServerMain类。
 
 zk服务器首先会进行服务器实例的创建，然后对服务器实例进行初始化，包括连接器，内存数据库和请求处理器等组件的初始化。
 ```
@@ -223,15 +209,12 @@ public class ZooKeeperServerMain {
     /*.............*/
 }
 ```
+ZooKeeperServerMain类中持有ServerCnxnFactory、ContainerManager和AdminServer对象。
+- ServerCnxnFactory为Zookeeper中的核心组件，用于网络通信IO的实现和管理客户端连接，Zookeeper内部提供了两种实现，一种是基于JDK的NIO实现，一种是基于netty的实现。
+- ContainerManager类，用于管理维护Zookeeper中节点Znode的信息，管理zkDatabase；
+- AdminServer是一个Jetty服务，默认开启8080端口，用于提供Zookeeper的信息的查询接口。该功能从3.5的版本开始。
 
-**ServerCnxnFactory**为Zookeeper中的核心组件，用于网络通信IO的实现和管理客户端连接，Zookeeper内部提供了两种实现，一种是基于JDK的NIO实现，一种是基于netty的实现。
-
-**ContainerManager**类，用于管理维护Zookeeper中节点Znode的信息，管理zkDatabase；
-
-**AdminServer**是一个Jetty服务，默认开启8080端口，用于提供Zookeeper的信息的查询接口。该功能从3.5的版本开始。
-
-**ZooKeeperServerMain**的main方法中同QuorumPeerMain中一致，先实例化本身的对象，再进行init，加载配置文件，然后启动。
-
+ZooKeeperServerMain的main方法中同QuorumPeerMain中一致，先实例化本身的对象，再进行init，加载配置文件，然后启动。
 ```java
     /*
      * Start up the ZooKeeper server.
@@ -267,10 +250,8 @@ public class ZooKeeperServerMain {
         System.exit(0);
     }
 ```
-
-### zookeeper组件启动
-
-```
+根据Zookeeper的配置文件信息来运行服务。
+```java
 // 解析单机模式的配置对象，并启动单机模式
     protected void initializeAndRun(String[] args)
         throws ConfigException, IOException, AdminServerException
@@ -301,14 +282,16 @@ public class ZooKeeperServerMain {
         runFromConfig(config);
     }
 ```
-zookeeper包含的主要组件有
+## 运行Zookeeper服务器
+运行Zookeeper服务器，执行`org.apache.zookeeper.server.ZooKeeperServerMain#runFromConfig`,
+zookeeper服务器运行的主要逻辑如下：
+- 初始化FileTxnSnapLog，创建了FileTxnLog实例和FIleSnap实例，并保存刚启动时候DataTree的snapshot
+- 初始化zkServer对象ZooKeeperServer，维护一个处理器链表processor chain
+- 实例化CountDownLatch线程计数器对象，在程序启动后，执行shutdownLatch.await();用于挂起主程序，并监听Zookeeper运行状态。
+- 创建adminServer（Jetty）服务并开启。
+- 创建ServerCnxnFactory对象，cnxnFactory = ServerCnxnFactory.createFactory(); Zookeeper默认使用NIOServerCnxnFactory来实现网络通信IO。
 
-- FileTxnSnapLog：管理FileTxLog和FileSnap
-- ZooKeeperServer：维护一个处理器链表processor chain
-- NIOServerCnxnFactory：管理来自客户端的连接
-- Jetty，用来通过http管理zk
-
-```
+```java
 public void runFromConfig(ServerConfig config)
             throws IOException, AdminServerException {
         LOG.info("Starting server");
@@ -342,7 +325,7 @@ public void runFromConfig(ServerConfig config)
             boolean needStartZKServer = true;
 
 
-            //---启动ZooKeeperServer
+            // 启动ZooKeeperServer
             //判断配置文件中 clientportAddress是否为null
             if (config.getClientPortAddress() != null) {
                 //ServerCnxnFactory是Zookeeper中的重要组件,负责处理客户端与服务器的连接
@@ -400,7 +383,104 @@ public void runFromConfig(ServerConfig config)
         }
     }
 ```
-#### 创建服务器统计器ServerStats
+ZooKeeperServer是ZooKeeper中所有服务器的父类，其实现了Session.Expirer和ServerStats.Provider接口
+```java
+public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {}
+```
+SessionExpirer中定义了expire方法（表示会话过期）和getServerId方法（表示获取服务器ID），而Provider则主要定义了获取服务器某些数据的方法。
+类中包含了心跳频率，会话跟踪器（处理会话）、事务日志快照、内存数据库、请求处理器、未处理的ChangeRecord、服务器统计信息等。
+ZooKeeperServer(FileTxnSnapLog, int, int, int, DataTreeBuilder, ZKDatabase)型构造函数
+```java
+   public ZooKeeperServer(FileTxnSnapLog txnLogFactory, int tickTime,
+            int minSessionTimeout, int maxSessionTimeout,
+            DataTreeBuilder treeBuilder, ZKDatabase zkDb) {
+        // 给属性赋值
+        serverStats = new ServerStats(this);
+        this.txnLogFactory = txnLogFactory;
+        this.zkDb = zkDb;
+        this.tickTime = tickTime;
+        this.minSessionTimeout = minSessionTimeout;
+        this.maxSessionTimeout = maxSessionTimeout;
+        
+        LOG.info("Created server with tickTime " + tickTime
+                + " minSessionTimeout " + getMinSessionTimeout()
+                + " maxSessionTimeout " + getMaxSessionTimeout()
+                + " datadir " + txnLogFactory.getDataDir()
+                + " snapdir " + txnLogFactory.getSnapDir());
+    }
+```
+该构造函数会初始化服务器统计数据、事务日志工厂、心跳时间、会话时间（最短超时时间和最长超时时间）。
+
+### 创建zookeeper数据管理器FileTxnSnapLog
+FileTxnSnapLog是zk上层服务器和底层数据存储的对接层，提供了一系列操作数据文件的接口，如事务日志文件和快照数据文件，Zookeeper根据zoo.cfg文件中解析出的快照数据目录dataDir和事务日志目录dataLogDir来创建FileTxnSnapLog。
+```java
+    public FileTxnSnapLog(File dataDir, File snapDir) throws IOException {
+        LOG.debug("Opening datadir:{} snapDir:{}", dataDir, snapDir);
+
+        this.dataDir = new File(dataDir, version + VERSION);
+        this.snapDir = new File(snapDir, version + VERSION);
+
+        // by default create snap/log dirs, but otherwise complain instead
+        // See ZOOKEEPER-1161 for more details
+        boolean enableAutocreate = Boolean.valueOf(
+                System.getProperty(ZOOKEEPER_DATADIR_AUTOCREATE,
+                        ZOOKEEPER_DATADIR_AUTOCREATE_DEFAULT));
+
+        trustEmptySnapshot = Boolean.getBoolean(ZOOKEEPER_SNAPSHOT_TRUST_EMPTY);
+        LOG.info(ZOOKEEPER_SNAPSHOT_TRUST_EMPTY + " : " + trustEmptySnapshot);
+
+        if (!this.dataDir.exists()) {
+            if (!enableAutocreate) {
+                throw new DatadirException("Missing data directory "
+                        + this.dataDir
+                        + ", automatic data directory creation is disabled ("
+                        + ZOOKEEPER_DATADIR_AUTOCREATE
+                        + " is false). Please create this directory manually.");
+            }
+
+            if (!this.dataDir.mkdirs() && !this.dataDir.exists()) {
+                throw new DatadirException("Unable to create data directory "
+                        + this.dataDir);
+            }
+        }
+        if (!this.dataDir.canWrite()) {
+            throw new DatadirException("Cannot write to data directory " + this.dataDir);
+        }
+
+        if (!this.snapDir.exists()) {
+            // by default create this directory, but otherwise complain instead
+            // See ZOOKEEPER-1161 for more details
+            if (!enableAutocreate) {
+                throw new DatadirException("Missing snap directory "
+                        + this.snapDir
+                        + ", automatic data directory creation is disabled ("
+                        + ZOOKEEPER_DATADIR_AUTOCREATE
+                        + " is false). Please create this directory manually.");
+            }
+
+            if (!this.snapDir.mkdirs() && !this.snapDir.exists()) {
+                throw new DatadirException("Unable to create snap directory "
+                        + this.snapDir);
+            }
+        }
+        if (!this.snapDir.canWrite()) {
+            throw new DatadirException("Cannot write to snap directory " + this.snapDir);
+        }
+
+        // check content of transaction log and snapshot dirs if they are two different directories
+        // See ZOOKEEPER-2967 for more details
+        if(!this.dataDir.getPath().equals(this.snapDir.getPath())){
+            checkLogDir();
+            checkSnapDir();
+        }
+
+        txnLog = new FileTxnLog(this.dataDir);
+        snapLog = new FileSnap(this.snapDir);
+    }
+```
+zookeeper维护了自己的数据结构和物理文件，而且要接收并处理client发送来的网络请求，初始化FileTxnSnapLog，创建了FileTxnLog实例和FIleSnap实例，并保存刚启动时候DataTree的snapshot。
+
+### 创建服务器统计器ServerStats
 ServerStats是zk服务器运行时的统计器
 ```java
  public ZooKeeperServer() {
@@ -408,35 +488,12 @@ ServerStats是zk服务器运行时的统计器
         listener = new ZooKeeperServerListenerImpl(this);
     }
 ```
-#### 创建zk数据管理器FileTxnSnapLog
-FileTxnSnapLog是zk上层服务器和底层数据存储的对接层，提供了一系列操作数据文件的接口，如事务日志文件和快照数据文件，Zookeeper根据zoo.cfg文件中解析出的快照数据目录dataDir和事务日志目录dataLogDir来创建FileTxnSnapLog。
 
-
-
-zookeeper维护了自己的数据结构和物理文件，而且要接收并处理client发送来的网络请求，所以在zookeeper启动的时候，要做好下面的准备工作
-
-1. 初始化FileTxnSnapLog，创建了FileTxnLog实例和FIleSnap实例，并保存刚启动时候DataTree的snapshot
-2. 初始化ZooKeeperServer 对象；
-3. 实例化CountDownLatch线程计数器对象，在程序启动后，执行shutdownLatch.await();用于挂起主程序，并监听Zookeeper运行状态。
-4. 创建adminServer（Jetty）服务并开启。
-5. 创建ServerCnxnFactory对象，cnxnFactory = ServerCnxnFactory.createFactory(); Zookeeper默认使用NIOServerCnxnFactory来实现网络通信IO。
-    1. 从解析出的配置中配置NIOServerCnxnFactory
-    2. 初始化网络连接管理类:NIOServerCnxnFactory
-        1. 初始化：WorkerService：用来业务处理的线程池
-        2. 线程启动：
-           SelectorThread（有多个）：处理网络请求，write和read
-           AcceptThread：用来接收连接请求，建立连接，zk也支持使用reactor多线程，accept线程用来建立连接，selector线程用来处理read、write
-           ConnectionExpirerThread：关闭超时的连接，所有的session都放在`org.apache.zookeeper.server.ExpiryQueue#expiryMap`里面维护，这个线程不断从里面拿出超时的连接关闭
-    3. 启动ZookeeperServer，主要是用来创建SessionTrackerImpl，这个类是用来管理session的
-
-
-#### 创建ServerCnxnFactory
-
+### 创建ServerCnxnFactory
 通过配置系统属性zookeper.serverCnxnFactory来指定使用Zookeeper自己实现的NIO还是使用Netty框架作为Zookeeper服务端网络连接工厂。
 
 Zookeeper中 ServerCnxnFactory默认采用了NIOServerCnxnFactory来实现，也可以通过配置系统属性zookeeper.serverCnxnFactory 来设置使用Netty实现；
-
-```
+```java
 static public ServerCnxnFactory createFactory() throws IOException {
         String serverCnxnFactoryName =
             System.getProperty(ZOOKEEPER_SERVER_CNXN_FACTORY);
@@ -458,10 +515,9 @@ static public ServerCnxnFactory createFactory() throws IOException {
     }
 ```
 
-#### 启动ServerCnxnFactory主线程
+### 启动ServerCnxnFactory主线程
 cnxnFactory.startup(zkServer);方法启动了ServerCnxnFactory ，同时启动ZooKeeper服务
-
-```
+```java
 public void startup(ZooKeeperServer zks, boolean startServer)
             throws IOException, InterruptedException {
         // 启动相关线程
@@ -481,11 +537,10 @@ public void startup(ZooKeeperServer zks, boolean startServer)
     }
 ```
 
-#### 恢复本地数据
+### 恢复本地数据
 启动时，需要从本地快照数据文件和事务日志文件进行数据恢复。
 
-
-```
+```java
 public void startdata() throws IOException, InterruptedException {
         //初始化ZKDatabase，该数据结构用来保存ZK上面存储的所有数据
         //check to see if zkDb is not null
@@ -500,9 +555,9 @@ public void startdata() throws IOException, InterruptedException {
     }
 ```
 
-#### 创建并启动会话管理器。
+### 创建并启动会话管理器。
 
-```
+```java
 public synchronized void startup() {
         //初始化session追踪器
         if (sessionTracker == null) {
@@ -523,7 +578,6 @@ public synchronized void startup() {
 ```
 
 #### 初始化Zookeeper的请求处理链
-
 Zookeeper请求处理方式为责任链模式的实现。会有多个请求处理器依次处理一个客户端请求，在服务器启动时，会将这些请求处理器串联成一个请求处理链。
 
 ```java
@@ -542,3 +596,5 @@ protected void setupRequestProcessors() {
 NIOServerCnxnFactory 类的方法 setZooKeeperServer(zks);
 
 至此，单机版的Zookeeper服务器实例已经启动。
+
+

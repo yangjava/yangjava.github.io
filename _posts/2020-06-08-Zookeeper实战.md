@@ -211,7 +211,7 @@ public class ZooKeeper_Master {
 
 （1）对于排他锁：**ZooKeeper通过数据节点表示一个锁，例如/exclusive_lock/lock节点就可以定义一个锁，所有客户端都会调用create()接口，试图在/exclusive_lock下创建lock子节点，但是ZooKeeper的强一致性会保证所有客户端最终只有一个客户创建成功。也就可以认为获得了锁，其它线程Watcher监听子节点变化（等待释放锁，竞争获取资源）。**
 
-​	 （2）对于共享锁：ZooKeeper同样可以通过数据节点表示一个锁，类似于/shared_lock/[Hostname]-请求类型（读/写）-序号的临时节点，比如/shared_lock/192.168.0.1-R-0000000000
+（2）对于共享锁：ZooKeeper同样可以通过数据节点表示一个锁，类似于/shared_lock/[Hostname]-请求类型（读/写）-序号的临时节点，比如/shared_lock/192.168.0.1-R-0000000000
 
 ### 排他锁（X）
 
