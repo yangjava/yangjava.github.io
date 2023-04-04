@@ -4,6 +4,20 @@ categories: Skywalking
 description: none
 keywords: Skywalking
 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### 基础概念
 
 span 、trace segment 、contextCarrier 、contextSnapshot

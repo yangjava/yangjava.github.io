@@ -7,33 +7,6 @@ keywords: SpringBoot
 # SpringBoot集成接口文档
 在生成文档前，你需要了解下OpenAPI规范，Swagger，SpringFox，Knife4J，Swagger UI等之间的关系。
 
-## 什么是OpenAPI规范（OAS)？
-OpenAPI 规范（OAS）在新窗口打开定义了一个标准的、语言无关的 RESTful API 接口规范，它可以同时允许开发人员和操作系统查看并理解某个服务的功能，而无需访问源代码，文档或网络流量检查（既方便人类学习和阅读，也方便机器阅读）。正确定义 OAS 后，开发者可以使用最少的实现逻辑来理解远程服务并与之交互。此外，文档生成工具可以使用 OpenAPI 规范来生成 API 文档，代码生成工具可以生成各种编程语言下的服务端和客户端代码，测试代码和其他用例。
-
-## 什么是Swagger？
-Swagger 是一个用于生成、描述和调用 RESTful 接口的 Web 服务。通俗的来讲，Swagger 就是将项目中所有（想要暴露的）接口展现在页面上，并且可以进行接口调用和测试的服务。
-
-从上述 Swagger 定义我们不难看出 Swagger 有以下 3 个重要的作用：
-- 将项目中所有的接口展现在页面上，这样后端程序员就不需要专门为前端使用者编写专门的接口文档；
-- 当接口更新之后，只需要修改代码中的 Swagger 描述就可以实时生成新的接口文档了，从而规避了接口文档老旧不能使用的问题；
-- 通过 Swagger 页面，我们可以直接进行接口调用，降低了项目开发阶段的调试成本。
-
-Swagger3完全遵循了 OpenAPI 规范。
-
-## Swagger和SpringFox有啥关系？
-Swagger 可以看作是一个遵循了 OpenAPI 规范的一项技术，而 springfox 则是这项技术的具体实现。 就好比 Spring 中的 IOC 和 DI 的关系 一样，前者是思想，而后者是实现。
-
-## 什么是Knife4J? 和Swagger什么关系？
-本质是Swagger的增强解决方案，前身只是一个SwaggerUI（swagger-bootstrap-ui）
-
-Knife4j是为Java MVC框架集成Swagger生成Api文档的增强解决方案, 前身是swagger-bootstrap-ui,取名kni4j是希望她能像一把匕首一样小巧,轻量,并且功能强悍!
-
-Knife4j的前身是swagger-bootstrap-ui，为了契合微服务的架构发展,由于原来swagger-bootstrap-ui采用的是后端Java代码+前端Ui混合打包的方式,在微服务架构下显的很臃肿,因此项目正式更名为knife4j
-
-更名后主要专注的方面
-- 前后端Java代码以及前端Ui模块进行分离,在微服务架构下使用更加灵活
-- 提供专注于Swagger的增强解决方案,不同于只是改善增强前端Ui部分
-
 ## 实现案例之Swagger3
 我们先看下最新Swagger3 如何配置和实现接口。
 
