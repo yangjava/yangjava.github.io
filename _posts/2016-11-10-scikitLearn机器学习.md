@@ -418,6 +418,8 @@ array([[3., 2.],
 - 使用包括交叉验证在内的各种评估工具，如模型选择子模块model_selection中的cross_val_score和GridSearchCV等。
 - 使用模型评估指标子模块metrics提供的针对特定目的评估预测误差的指标函数，包括分类指标函数、回归指标函数和聚类指标函数等。
 
+# 参考资料
+scikit-learn机器学习
 
 
 
