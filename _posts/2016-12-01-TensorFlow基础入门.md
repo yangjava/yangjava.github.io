@@ -27,45 +27,95 @@ keywords: Python
 ### 部署
 一旦模型的表现令人满意，那么下一个步骤就是部署了。根据具体的使用情况，这个阶段可能有不同的形式，但常见的场景包括将其作为另一个大型应用程序中的某个功能特性，一个定制的Web应用程序，甚至只是一个简单的cron作业。
 
-## TensorFlow简介
-TensorFlow是一个开源软件库，用于使用数据流图进行数值计算。图中的节点表示数学运算，而图边表示在它们之间传递的多维数据数组（张量，tensor）。
+## TensorFlow2.0简介
+谷歌公司在2011年启动了谷歌大脑（Google Brain）项目，该项目旨在探索超大规模的深度神经网络，一方面用于研究，另一方面也希望可以在谷歌公司的各类产品中使用，DistBelief 分布式机器学习框架便是该项目的一部分。DistBelief 曾在谷歌公司内部得到了广泛的使用，有超过50个谷歌公司团队（包括其子公司）在他们的产品中使用DistBelief 部署了深度神经网络，包括搜索、广告、地图、语音识别及YouTube 等系统。
 
-该库包括各种功能，使你能够实现和探索用于图像和文本处理的前沿卷积神经网络（CNN）和循环神经网络（RNN）架构。由于复杂计算以图形的形式表示，TensorFlow可以用作一个框架，使你能够轻松开发自己的模型，并在机器学习领域中使用它们。
+TensorFlow 是谷歌公司在DistBelief 的经验和基础上开发的第二代大规模分布式机器学习系统。为了打造一个行业标准，以及借助社区的力量来完善TensorFlow 等目的，谷歌公司于2015年11月将TensorFlow 在GitHub 上开源。在从TensorFlow1.0正式版发布（2017年2月）到TensorFlow2.0的RC 版发布（2019年9月）仅2年多时间中，TensorFlow 已经成为各类深度学习框架中的主力军。
 
-## TensorFlow的主要数据结构——张量
-TensorFlow基于张量数据管理。张量是数学领域的概念，并且被开发为向量和矩阵的线性代数项的泛化。 具体到TensorFlow中，一个张量就是一个张量类的实例，是绑定了相关运算的一个特定类型的多维数组。
+TensorFlow 使用数据流模型来描述计算过程，并将它们映射到了各种不同的操作系统上，包括Linux、Max OS X、Windows、Android 和iOS 等，从x86架构到ARM 架构，从拥有单个或多个CPU 的服务器到大规模GPU 集群，凭借着统一的架构，可以跨越多种平台部署，显著地降低了机器学习系统的应用部署难度，易用性得到了很大程度的提升。
 
-TensorFlow使用张量数据结构来表征所有的数据。所有的张量都有一个静态的类型和动态的维数。所以你能够实时地改变一个张量的内部结构。 张量的另一个属性就是只有张量类型的对象才能在计算图的节点中传递。
+## TensorFlow的基本概念
+TensorFlow 的基本概念。
+- 计算图
+计算图（Computation Graph）是一个有向图（Directed Graph），是对TensorFlow 中计算任务的抽象描述，也称为数据流图（Data Flow Graph）。TensorFlow 使用计算图将计算表示成独立指令之间的依赖关系。在计算图中，节点表示计算单元（即一个独立的运算操作），图中的边表示计算使用或产生的数据。
 
-我们开始来讨论张量的其他属性（从此处开始，我们所有说的张量都是TensorFlow中的张量对象）。
+TensorFlow1.x 采用的是静态计算图机制，即我们使用TensorFlow 低级API 编程时，要先定义好计算图，再创建TensorFlow 会话（Session）来执行计算图，可以反复调用它（1.x版本提供的Eager Execution 接口可以让用户使用动态计算图）。
 
-### 张量的阶
-张量的阶（rank）表征了张量的维度，但是跟矩阵的秩（rank）不一样。它表示张量的维度的质量。
+TensorFlow2.0则采用了动态计算图机制（1.x 版本的Eager Execution 在2.0中成为默认的执行方式），可以像执行普通的Python 程序一样执行TensorFlow 的代码，而不再需要自己预先定义好计算图，调试代码也更加容易。TensorFlow1.x 的静态计算图机制一直被用户所诟病，调整为动态计算图机制是 TensorFlow2.0的一个重大改进，并且提供了方法，以保留静态计算图的优势。
 
-阶为1的张量等价于向量，阶为2的向量等价于矩阵。对于一个阶为2的张量，通过t[i, j]就能获取它的每个元素。对于一个阶为3的张量，需要通过t[i, j, k]进行寻址。
-在下面这个例子中，我们创建了一个张量，并获取其元素：
-```shell
+### 会话
+在1.x 版本中，会话（Session）是客户端程序与TensorFlow 系统进行交互的接口，我们定义好的计算图必须在会话中执行。当会话被创建时会初始化一个空的图，客户端程序可以通过会话提供的“Extend”方法向这个图中添加新的节点来创建计算图，并通过“tf.Session”类提供的“run”方法来执行计算图。在大多数情况下只需要创建一次会话和计算图，之后可以在会话中反复执行整个计算图或者其中的某些子图。
 
-```
+TensorFlow2.0采用了动态计算图机制，就不需要在会话中执行计算图了，“tf.Session”类被放到了兼容模块“TensorFlow.compat.v1”中，这个模块里有完整的TensorFlow1.x 的API。为了保留静态计算图的优势（例如性能优化和可移植性等）， TensorFlow2.0提供了“tf.function”方法，对于使用“tf.function”方法修饰的Python 函数，TensorFlow 可以将其作为单个图来运行。
 
-### 张量的形状
-TensorFlow文档使用三个术语来描述张量的维度：阶（rank），形状（shape）和维数（dimension number）。
+### 运算操作和运算核
+计算图中的每一个节点就是一个运算操作（Operation，通常简称Op），每一个运算操作都有名称，并且代表了一种类型的抽象运算，例如“MatMul”代表矩阵的乘法。每个运算操作都可以有自己的属性，但是所有的属性都必须被预先设置，或者能够在创建计算图时根据上下文推断出来。通过设置运算操作的属性可以让运算操作支持不同的张量（Tensor）元素类型，例如让向量加法操作运算只接收浮点类型的张量。运算核（Kernel）是一个运算操作在某个具体的硬件（比如CPU 或GPU）上的实现，在TensorFlow 中可以通过注册机制加入新的运算操作或者为已有的运算操作添加新的运算核。
 
-### 张量的数据类型
-除了维度，张量还有一个确定的数据类型。
+### 张量
+张量（Tensor）可以看作一个多维的数组或列表，它是对矢量和矩阵的更高维度的泛化，张量由“tf.Tensor”类定义。计算图中的一个运算操作可以获得0个或多个张量作为输入，运算后会产生0个或多个张量输出。这些张量在计算图的边中流动（Flow），从一个节点（运算操作）到另一个节点，TensorFlow 也因此而得名。
 
+张量具有以下两个属性：
+- 数据类型（同一个张量中的每个元素都具有相同的数据类型，例如float32、int32及string）。
+- 形状（即张量的维数及每个维度的大小）。
 
+TensorFlow 有一些特殊的张量，如下所示。
+- tf.Variable：变量。TensorFlow 中的张量一般都不会被持久化保存，参与一次运算操作后就会被丢弃了。而变量是一种特殊的张量。对于那些需要被持久化保存的张量，可以用变量来代替。我们可以使用“tf.Variable”类来定义和操作变量，该类提供了一些操作让我们可以对变量的值进行更改，例如“assign”和“assign_add”等。模型的参数一般都是使用变量来存储的，在模型训练的过程中，参数会不断地更新。变量的值可以修改， 但是其维度不可以改变。
+- tf.constant：常量。常量定义时必须初始化值，且定义后其值和维度不可再改变。
+- tf.placeholder：占位符。在执行“session.run（）”方法时传入具体的值， TensorFlow2.0中不再使用，但依然可以在“TensorFlow.compat.v1”模块中找到。
+- tf.SparseTensor：稀疏张量。
 
+## 从1.x到2.0的变化
+TensorFlow2.0在1.x 的基础上做了重新设计，重点放在了提升开发人员的工作效率上，确保2.0版本更加简单易用。TensorFlow2.0为了提升易用性做了很多改进，例如对API 做了精简，删除了冗余的API，使得API 更加一致（例如统一TensorFlow 和tf.keras 的循环神经网络和优化器等），以及由静态计算图转变为动态计算图等（这使得代码的编写和调试变得更加容易）。接下来看看TensorFlow2.0的主要变化。
 
+- API 精简
+很多TensorFlow1.x 的API 在2.0中被去掉或者改变了位置，还有一些则被新的API 给替换掉了。官方提供了一个转换工具，可以用来将1.x 版本的代码升级到2.0，其主要工作其实就是修改这些有变更的API。不过使用该工具不一定能够转换成功，转换成功后的代码也并不一定能够正常运行，很多时候还是需要人工修改。
 
+- 动态计算图
+动态计算图（Eager Execution）是TensorFlow 从1.8版开始正式加入的，但只是作为一种可选操作，在TensorFlow2.0之前，TensorFlow 默认的模式都是静态计算图机制（Graph Execution），TensorFlow2.0将动态计算图设为默认模式。在该模式下用户能够更轻松地编写和调试代码，可以使用原生的Python 控制语句，大大降低学习和使用TensorFlow 的门槛。在TensorFlow2.0中，图（Graph）和会话（Session）都变成了底层实现，而不再需要用户关心了。
 
+- 取消全局变量
+TensorFlow1.x 非常依赖隐式全局命名空间。当我们调用“tf.Variable”创建变量时，该变量就会被放进默认的图中，即使我们忘记了指向它的Python 变量，它也会留在那里。当我们想恢复这些变量时，必须知道该变量的名称。如果没法控制这些变量的创建，也就无法做到这点。TensorFlow1.x 中有各种机制旨在帮助用户再次找到他们所创建的变量，而在2.0版中则取消了所有这些机制，支持默认机制：跟踪变量。当我们不再用到某个变量时，该变量就会被自动回收。
 
+- 使用函数而不是会话
+在TensorFlow1.x 中，使用“session.run（）”方法执行计算图，“session.run（）”方法的调用类似于函数调用：指定输入数据和调用的方法，最后返回输出结果。为了保留静态图的优势，如性能优化及重用模块化的TensorFlow 函数等，在 TensorFlow2.0中，我们可以使用“tf.function（）”来修饰Python 函数以将其标记为即时（Just-In-Time）编译，从而TensorFlow可以将其作为单个图来执行。
 
+## TensorFlow2.0的架构
+作为全球最受欢迎、使用最为广泛的机器学习平台之一，TensorFlow 在其发展的三年时间也是机器学习和人工智能发展最为迅猛的三年。TensorFlow2.0是一个重要的里程碑，其重心放在了简单性和易用性上，尽量降低用户使用的门槛。TensorFlow 团队为其添加了许多的组件，在 TensorFlow2.0里，这些组件被打包成了一个全面的平台，它支持从训练到部署的标准化的机器学习流程。
 
+TensorFlow2.0的基本工作流程及对应的可以使用的API，还会根据TensorFlow 的官方文档重点介绍一下“tf.data”和“tf.keras”这两个API，让读者快速入门 TensorFlow2.0的使用。读者可以结合官方文档在本书后续的项目实战中慢慢熟悉和掌握其他API。
 
+### 使用tf.data 加载数据
+我们使用tf.data 所创建的输入管道来读取训练数据，并可以通过tf.feature_column 来指定特征列或者交叉特征。
 
+### 使用tf.keras 或Premade Estimators 构建、训练和验证模型
+作为TensorFlow 的核心高级API，tf.keras 已经和TensorFlow 的其余部分紧密集成。使用tf.keras 可以简单、快捷地构建模型。另外tf.estimator 中打包了一些标准的模型供我们直接使用，例如逻辑回归、提升树及随机森林等。当我们不想从头开始训练一个模型时（例如这个模型的训练可能非常耗时），可以使用TensorFlow Hub 模块来进行迁移学习。
 
+### 使用Eager Execution 运行和调试模型，以及使用tf.function 充分利用计算图的优势
+前面已经介绍过，在Eager Execution 模式下，可以更加方便地编写和调试代码，在 TensorFlow2.0中，该模式是默认开启的。我们可以使用tf.function 来将Python 程序转换为TensorFlow 的静态计算图，这样就可以保留TensorFlow1.x 版本中的静态计算图的优势。
 
+### 使用Distribution Strategies 进行分布式训练
+对于大规模的机器学习训练任务，tf.distribute.Strategy API 旨在让用户只需要对现有的模型和代码做最少的更改就可以实现分布式的训练。TensorFlow 支持CPU、GPU 以及TPU等硬件加速器，可以将训练任务分配到单节点、多加速器及多节点或多加速器。
+
+### 使用SavedModel 存储模型
+在TensorFlow 中有两种模型存储的格式：一个是检查点（Checkpoints），另一个是SavedModel，前者依赖于创建模型的源代码，而后者则与创建模型的源代码无关，因此标准化后的SavedModel 可以作为TensorFlow Serving、TensorFlow Lite、TensorFlow.js 或者其他编程语言的交换格式。
+
+## TensorFlow2.0的安装
+TensorFlow CPU 版本的安装较为简单，而GPU 版本则需要另外安装一些驱动程序和库，为了简便我们可以使用Docker 的方式来安装和使用（目前，TensorFlow 只有Linux 版提供了Docker 镜像）。本书中我们会通过python 的包管理工具pip 进行安装，并且以Linux 环境为准。
+
+GPU 版的TensorFlow 包含了CPU 版本，如果读者手上有GPU 资源的话，安装GPU 版的TensorFlow。
+
+我们使用命令“apip install tensorflow”进行安装，该命令会安装最新的、稳定的CPU版本的TensorFlow。安装完成后，我们进入Python 的交互式解释器环境验证安装是否成功，依次运行`“import tensorflow as tf”、“print（tf.__version__）`”
+
+## TensorFlow2.0的使用
+除GPU 和TPU 等硬件加速设备外，高效的数据输入管道也可以很大程度地提升模型性能，减少模型训练所需要的时间。数据输入管道本质是一个ELT（Extract、Transform 和Load）过程：
+- Extract：从硬盘中读取数据（可以是本地的，也可以是云端的）。
+- Transform：数据的预处理（如数据清洗、格式转换等）。
+- Load：将处理好的数据加载到计算设备（例如CPU、GPU 及TPU 等）。
+
+数据输入管道一般使用CPU 来执行ELT 过程，GPU 等其他硬件加速设备则负责模型的训练，ELT 过程和模型的训练并行执行，从而提高模型训练的效率。另外ELT 过程的各个步骤也都可以进行相应的优化，例如并行地读取和处理数据等。在TensorFlow 中可以使用“tf.data”API 来构建这样的数据输入管道。
+
+## “tf.keras”API
+Keras 是一个基于Python 编写的高层神经网络API，强调用户友好性、模块化及易扩展等，其后端可以采用TensorFlow、Theano 及CNTK，目前大多是以TensorFlow 作为后端引擎的。考虑到Keras 优秀的特性及它的受欢迎程度，TensorFlow 将Keras 的代码吸收进来，并将其作为高级API 提供给用户使用。“tf.keras”不强调原来Keras 的后端可互换性，而是在符合Keras 标准的基础上让其与TensorFlow 结合得更紧密（例如支持TensorFlow 的Eager Execution 模式，支持“tf.data”，以及支持TPU 训练等）。“tf.keras”提高了TensorFlow 的易用性，同时也保持了TensorFlow 的灵活性和性能。
 
 
 
