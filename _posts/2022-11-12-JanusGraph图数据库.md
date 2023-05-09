@@ -227,6 +227,59 @@ g.V(h).outE('battled').has('rating', gt(3.0)).inV()
 ```
 注意：JanusGraph 自动为每个 edge label 的每个 property key 建立了 vertex-centric label，因此即使有数千个边也能高效查询。
 
+## JanusGraph批量导入
+janus的导入的常用方案
+- 基于JanusGraph Api的批量导入
+- 基于Gremlin Server的批量导入
+- 使用JanusGraph-utils的批量导入
+- 基于bulk loader 导入方式
+
+### 基于JanusGraph Api的数据导入
+```java
+public JanusGraphVertex addVertex(Object... keyValues);
+public JanusGraphEdge addEdge(String label, Vertex vertex, Object... keyValues);
+```
+在janusGraph的业务项目中，可以开发一个数据导入模块，使用提供的类似于java api等，进行数据的导入；
+```java
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
+import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
+
+public class JanusGraphImportDemo {
+    public static void main(String[] args) throws Exception {
+
+        GraphTraversalSource g = traversal().withRemote("conf/remote-graph.properties");
+
+        Vertex next0 = g.addV("Company").property("name", "西安仁昌建筑装饰工程有限公司").property("alias", "西安仁昌").next();
+        Vertex next1 = g.addV("Company").property("name", "福州兴嘉创装饰涂料有限公司闽侯县上街分公司").property("alias", "兴嘉创").next();
+        Vertex next2 = g.addV("Company").property("name", "福州高弘达建筑装饰有限公司").property("alias", "高弘达").next();
+        Vertex next3 = g.addV("Company").property("name","上海老板电器销售有限公司崇明分公司").property("alias","老板电器").next();
+        Vertex next4 = g.addV("Company").property("name","广州白云区前睿商贸有限公司").property("alias","前睿商贸").next();
+
+        Vertex next11 = g.addV("Person").property("name","张三").property("alias","zhangsan").property("sex","男").next();
+        Vertex next12 = g.addV("Person").property("name","李四").property("alias","lisi").property("sex","女").next();
+        Vertex next13 = g.addV("Person").property("name","王五").property("alias","wangwu").next();
+
+        g.addE("法定代表人").from(next0).to(next11).property("relation","法定代表人").next();
+        g.addE("法定代表人").from(next1).to(next12).property("relation","法定代表人").next();
+        g.addE("法定代表人").from(next2).to(next13).property("relation","法定代表人").next();
+        g.addE("法定代表人").from(next3).to(next11).property("relation","法定代表人").next();
+        g.addE("法定代表人").from(next4).to(next12).property("relation","法定代表人").next();
+
+        g.addE("实际控制人").from(next0).to(next11).property("relation","实际控制人").property("percent","50%").next();
+        g.addE("实际控制人").from(next0).to(next12).property("relation","实际控制人").property("percent","30%").next();
+        g.addE("实际控制人").from(next0).to(next13).property("relation","实际控制人").property("percent","20%").next();
+
+    }
+}
+```
+
+### IBM的janusgraph-utils
+主要也是通过多线程对数据进行导入；
+自己手动组装对应的schema文件，将schema导入到数据库； 然后将组装为特定格式的csv文件中的数据，导入到图库中；
+github地址： https://github.com/IBM/janusgraph-utils
+
 
 # 参考资料
 中文文档(http://janusgraph.cn/index.html)[http://janusgraph.cn/index.html]
