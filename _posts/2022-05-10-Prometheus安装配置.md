@@ -4,7 +4,7 @@ categories: Prometheus
 description: none
 keywords: Prometheus
 ---
-# Prometheus安装和使用
+# Prometheus安装配置
 Prometheus云原生时代监控领域的现象级产品，常与Grafana搭配使用，是当前互联网企业的首选监控解决方案。
 
 ## Docker下搭建Prometheus
@@ -600,6 +600,366 @@ spec:
         target_label: kubernetes_pod_name
 
 ```
+
+## Prometheus配置
+prometheus的配置文件`prometheus.yml`，它主要分以下几个配置块：
+
+- global          全局配置        
+- alerting        告警配置
+- rule_files      规则文件配置
+- scrape_configs  拉取配置
+- remote_read、remote_write 远程读写配置  
+
+### global(全局配置)
+`global`指定在所有其他配置上下文中有效的参数。还可用作其他配置部分的默认设置。
+
+```
+global:
+  # 默认拉取频率
+  [ scrape_interval: <duration> | default = 1m ]
+
+  # 拉取超时时间
+  [ scrape_timeout: <duration> | default = 10s ]
+
+  # 执行规则频率
+  [ evaluation_interval: <duration> | default = 1m ]
+
+  # 通信时添加到任何时间序列或告警的标签
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+    [ <labelname>: <labelvalue> ... ]
+
+  # 记录PromQL查询的日志文件
+  [ query_log_file: <string> ]
+
+```
+
+### alerting(告警配置)
+`alerting`指定与Alertmanager相关的设置。
+
+```
+alerting:
+  alert_relabel_configs:
+    [ - <relabel_config> ... ]
+  alertmanagers:
+    [ - <alertmanager_config> ... ]
+```
+
+### rule_files(规则文件配置)
+`rule_files`指定prometheus加载的任何规则的位置，从所有匹配的文件中读取规则和告警。目前没有规则。
+
+```
+rule_files:
+  [ - <filepath_glob> ... ]
+```
+
+### scrape_configs(拉取配置)
+scrape_configs指定prometheus监控哪些资源。默认会拉取prometheus本身的时间序列数据，通过http://localhost:9090/metrics进行拉取。
+
+一个scrape_config指定一组目标和参数，描述如何拉取它们。在一般情况下，一个拉取配置指定一个作业。在高级配置中，这可能会改变。
+
+可以通过static_configs参数静态配置目标，也可以使用支持的服务发现机制之一动态发现目标。
+
+此外，relabel_configs在拉取之前，可以对任何目标及其标签进行修改。
+
+
+```
+scrape_configs:
+job_name: <job_name>
+
+# 拉取频率
+[ scrape_interval: <duration> | default = <global_config.scrape_interval> ]
+
+# 拉取超时时间
+[ scrape_timeout: <duration> | default = <global_config.scrape_timeout> ]
+
+# 拉取的http路径
+[ metrics_path: <path> | default = /metrics ]
+
+# honor_labels 控制prometheus处理已存在于收集数据中的标签与prometheus将附加在服务器端的标签("作业"和"实例"标签、手动配置的目标标签和由服务发现实现生成的标签)之间的冲突
+# 如果 honor_labels 设置为 "true"，则通过保持从拉取数据获得的标签值并忽略冲突的服务器端标签来解决标签冲突
+# 如果 honor_labels 设置为 "false"，则通过将拉取数据中冲突的标签重命名为"exported_<original-label>"来解决标签冲突(例如"exported_instance"、"exported_job")，然后附加服务器端标签
+# 注意，任何全局配置的 "external_labels"都不受此设置的影响。在与外部系统的通信中，只有当时间序列还没有给定的标签时，它们才被应用，否则就会被忽略
+[ honor_labels: <boolean> | default = false ]
+
+# honor_timestamps 控制prometheus是否遵守拉取数据中的时间戳
+# 如果 honor_timestamps 设置为 "true"，将使用目标公开的metrics的时间戳
+# 如果 honor_timestamps 设置为 "false"，目标公开的metrics的时间戳将被忽略
+[ honor_timestamps: <boolean> | default = true ]
+
+# 配置用于请求的协议
+[ scheme: <scheme> | default = http ]
+
+# 可选的http url参数
+params:
+  [ <string>: [<string>, ...] ]
+
+# 在每个拉取请求上配置 username 和 password 来设置 Authorization 头部，password 和 password_file 二选一
+basic_auth:
+  [ username: <string> ]
+  [ password: <secret> ]
+  [ password_file: <string> ]
+
+# 在每个拉取请求上配置 bearer token 来设置 Authorization 头部，bearer_token 和 bearer_token_file 二选一
+[ bearer_token: <secret> ]
+
+# 在每个拉取请求上配置 bearer_token_file 来设置 Authorization 头部，bearer_token_file 和 bearer_token 二选一
+[ bearer_token_file: /path/to/bearer/token/file ]
+
+# 配置拉取请求的TLS设置
+tls_config:
+  [ <tls_config> ]
+
+# 可选的代理URL
+[ proxy_url: <string> ]
+
+# Azure服务发现配置列表
+azure_sd_configs:
+  [ - <azure_sd_config> ... ]
+
+# Consul服务发现配置列表
+consul_sd_configs:
+  [ - <consul_sd_config> ... ]
+
+# DNS服务发现配置列表
+dns_sd_configs:
+  [ - <dns_sd_config> ... ]
+
+# EC2服务发现配置列表
+ec2_sd_configs:
+  [ - <ec2_sd_config> ... ]
+
+# OpenStack服务发现配置列表
+openstack_sd_configs:
+  [ - <openstack_sd_config> ... ]
+
+# file服务发现配置列表
+file_sd_configs:
+  [ - <file_sd_config> ... ]
+
+# GCE服务发现配置列表
+gce_sd_configs:
+  [ - <gce_sd_config> ... ]
+
+# Kubernetes服务发现配置列表
+kubernetes_sd_configs:
+  [ - <kubernetes_sd_config> ... ]
+
+# Marathon服务发现配置列表
+marathon_sd_configs:
+  [ - <marathon_sd_config> ... ]
+
+# AirBnB's Nerve服务发现配置列表
+nerve_sd_configs:
+  [ - <nerve_sd_config> ... ]
+
+# Zookeeper Serverset服务发现配置列表
+serverset_sd_configs:
+  [ - <serverset_sd_config> ... ]
+
+# Triton服务发现配置列表
+triton_sd_configs:
+  [ - <triton_sd_config> ... ]
+
+# 静态配置目标列表
+static_configs:
+  [ - <static_config> ... ]
+
+# 目标relabel配置列表
+relabel_configs:
+  [ - <relabel_config> ... ]
+
+# metric relabel配置列表
+metric_relabel_configs:
+  [ - <relabel_config> ... ]
+
+# 每次拉取样品的数量限制
+# metric relabelling之后，如果有超过这个数量的样品，整个拉取将被视为失效。0表示没有限制
+[ sample_limit: <int> | default = 0 ]
+```
+
+### remote_read`/`remote_write(远程读写配置)
+
+`remote_read`/`remote_write`将数据源与prometheus分离，当前不做配置。
+
+```
+# 与远程写功能相关的设置
+remote_write:
+  [ - <remote_write> ... ]
+
+# 与远程读功能相关的设置
+remote_read:
+  [ - <remote_read> ... ]
+```
+
+## 简单配置示例
+```
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      # - alertmanager:9093
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['localhost:9090']
+```
+
+### AlertManager配置
+
+alertmanager通过命令行标志和配置文件进行配置。命令行标志配置不可变的系统参数时，配置文件定义禁止规则，通知路由和通知接收器。
+
+alertmanager的配置文件`alertmanager.yml`，它主要分以下几个配置块：
+
+```
+全局配置        global
+
+通知模板        templates
+
+路由配置        route
+
+接收器配置      receivers
+
+抑制配置        inhibit_rules
+```
+
+全局配置 `global`
+
+`global`指定在所有其他配置上下文中有效的参数。还用作其他配置部分的默认设置。
+
+```
+global:
+  # 默认的SMTP头字段
+  [ smtp_from: <tmpl_string> ]
+  
+  # 默认的SMTP smarthost用于发送电子邮件，包括端口号
+  # 端口号通常是25，对于TLS上的SMTP，端口号为587
+  # Example: smtp.example.org:587
+  [ smtp_smarthost: <string> ]
+  
+  # 要标识给SMTP服务器的默认主机名
+  [ smtp_hello: <string> | default = "localhost" ]
+  
+  # SMTP认证使用CRAM-MD5，登录和普通。如果为空，Alertmanager不会对SMTP服务器进行身份验证
+  [ smtp_auth_username: <string> ]
+  
+  # SMTP Auth using LOGIN and PLAIN.
+  [ smtp_auth_password: <secret> ]
+  
+  # SMTP Auth using PLAIN.
+  [ smtp_auth_identity: <string> ]
+  
+  # SMTP Auth using CRAM-MD5.
+  [ smtp_auth_secret: <secret> ]
+  
+  # 默认的SMTP TLS要求
+  # 注意，Go不支持到远程SMTP端点的未加密连接
+  [ smtp_require_tls: <bool> | default = true ]
+
+  # 用于Slack通知的API URL
+  [ slack_api_url: <secret> ]
+  [ victorops_api_key: <secret> ]
+  [ victorops_api_url: <string> | default = "https://alert.victorops.com/integrations/generic/20131114/alert/" ]
+  [ pagerduty_url: <string> | default = "https://events.pagerduty.com/v2/enqueue" ]
+  [ opsgenie_api_key: <secret> ]
+  [ opsgenie_api_url: <string> | default = "https://api.opsgenie.com/" ]
+  [ wechat_api_url: <string> | default = "https://qyapi.weixin.qq.com/cgi-bin/" ]
+  [ wechat_api_secret: <secret> ]
+  [ wechat_api_corp_id: <string> ]
+
+  # 默认HTTP客户端配置
+  [ http_config: <http_config> ]
+
+  # 如果告警不包括EndsAt，则ResolveTimeout是alertmanager使用的默认值，在此时间过后，如果告警没有更新，则可以声明警报已解除
+  # 这对Prometheus的告警没有影响，它们包括EndsAt
+  [ resolve_timeout: <duration> | default = 5m ]
+
+```
+
+- 通知模板 `templates`：
+
+`templates`指定了从其中读取自定义通知模板定义的文件，最后一个文件可以使用一个通配符匹配器，如`templates/*.tmpl`。
+
+```
+templates:
+  [ - <filepath> ... ]
+```
+
+- 路由配置 `route`：
+
+route定义了路由树中的节点及其子节点。如果未设置，则其可选配置参数将从其父节点继承。
+
+每个告警都会在已配置的顶级路由处进入路由树，该路由树必须与所有告警匹配（即没有任何已配置的匹配器），然后它会遍历子节点。如果continue设置为false，它将在第一个匹配的子项之后停止；如果continue设置为true，则告警将继续与后续的同级进行匹配。如果告警与节点的任何子节点都不匹配（不匹配的子节点或不存在子节点），则根据当前节点的配置参数来处理告警。
+
+```
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+```
+
+- 接收器配置 `receivers`：
+
+`receivers`是一个或多个通知集成的命名配置。建议通过webhook接收器实现自定义通知集成。
+
+```
+receivers:
+- name: 'web.hook'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/'
+```
+
+- 抑制规则配置 `inhibit_rules`：
+
+当存在与另一组匹配器匹配的告警（源）时，抑制规则会使与一组匹配器匹配的告警（目标）“静音”。目标和源告警的equal列表中的标签名称都必须具有相同的标签值。
+
+在语义上，缺少标签和带有空值的标签是相同的。因此，如果equal源告警和目标告警都缺少列出的所有标签名称，则将应用抑制规则。
+
+```
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
+```
+
+- 默认配置示例：
+
+```
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+receivers:
+- name: 'web.hook'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/'
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
+```
+
+
 
 
 

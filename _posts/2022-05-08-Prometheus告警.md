@@ -4,28 +4,17 @@ categories: Prometheus
 description: none
 keywords: Prometheus
 ---
-# prometheus 告警指标
+# prometheus告警
+Prometheus监控提供了告警规则模板功能，可以帮助用户快速为多个Prometheus实例创建告警规则，降低用户管理多个Prometheus实例告警规则的成本。
 
+## 告警规则模板
 
-## 常用prometheus告警规则模板
-https://blog.51cto.com/shoufu/2561993
-
-
-
-
-
-### 应用类相关
-
-1.监控应用是否可用
-
-规则模板 :
+- 监控应用是否可用
 
 ```
 up=${value} 
 ```
-
 规则描述:
-
 监测应用是否可用
 
 参数说明:

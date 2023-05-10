@@ -8,7 +8,7 @@ keywords: Prometheus
 
 ## 架构图
 
-![Prometheus](Prometheus.png)
+
 
 从上图可发现，Prometheus整个生态圈组成主要包括prometheus server，Exporter，pushgateway，alertmanager，grafana，Web ui界面。
 

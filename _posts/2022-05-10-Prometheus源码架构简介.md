@@ -25,10 +25,121 @@ main 函数完成初始化、启动所有的组件。这些组件包括：Termin
 这些 Go Routine 的协作使用了 oklog/run 框架。oklog/run 是一套基于 Actor 设计模式的 Go Routine 编排框架，实现了多个 Go Routine 作为统一整体运行并有序依次退出。
 
 ## 源码结构
-源码地址
-```text
-https://github.com/prometheus/prometheus
+prometheus源码地址[https://github.com/prometheus/prometheus](https://github.com/prometheus/prometheus)
+
+Prometheus的源代码主要包括以下几个目录：
 ```
+prometheus
+    ├──cmd\/
+
+    │├──prometheus\/
+
+│├──promtool\/
+
+│└──...
+
+├──config\/
+
+├──discovery\/
+
+├──documentation\/
+
+├──pkg\/
+
+│├──api\/
+
+│├──labels\/
+
+│├──promql\/
+
+│├──scrape\/
+
+│├──storage\/
+
+│├──tsdb\/
+
+│├──util\/
+
+│└──...
+
+├──prompb\/
+
+├──promql\/
+
+├──rules\/
+
+prometheus源码目录结构
+
+├──sd\/
+
+├──testutil\/
+
+├──web\/
+
+├──LICENSE
+
+├──NOTICE
+
+├──README.md
+
+└──...
+```
+- cmd:prometheus的入口和promtool规则校验工具的源码。包含了Prometheus的命令行工具，包括prometheus和promtool等。
+- config:包含了Prometheus的配置文件模板。用来解析yaml配置文件
+- discovery:包含了Prometheus的服务发现相关代码。主要是scrape targets，其中包含consul, zk, azure, file,aws, dns, gce等目录实现了不同的服务发现逻辑
+- documentation:包含了Prometheus的文档。
+- pkg:包含了Prometheus的核心代码，包括api、labels、promql、scrape、storage、tsdb、util等。
+- prompb:包含了Prometheus的protobuf定义文件。
+- promql:包含了Prometheus的PromQL查询引擎代码。
+- rules:包含了Prometheus的告警规则文件。
+- sd:包含了Prometheus的服务发现配置文件。
+- testutil:包含了Prometheus的测试工具。
+- web:包含了Prometheus的Web界面代码。
+
+2.cmd目录
+
+cmd目录包含了Prometheus的命令行工具，包括prometheus、promtool等。其中，prometheus是Prometheus的主程序，它启动了Prometheus的HTTP服务器和TSDB存储引擎。promtool是Prometheus的工具箱，它包含了一系列工具，例如校验配置文件、检查告警规则等。
+
+3.config目录
+
+config目录包含了Prometheus的配置文件模板。在这个目录中，用户可以找到Prometheus的默认配置文件，并可以根据自己的需求进行修改和定制。
+
+4.discovery目录
+
+discovery目录包含了Prometheus的服务发现相关代码。Prometheus支持多种服务发现方式，例如DNS、Consul、Zookeeper等。在这个目录中，用户可以找到Prometheus的服务发现实现代码。
+
+5.documentation目录
+
+documentation目录包含了Prometheus的文档，包括用户手册、API文档等。这些文档对于了解Prometheus的使用和开发非常有帮助。
+
+6.pkg目录
+
+pkg目录包含了Prometheus的核心代码，这些代码被其他模块广泛使用。其中，api模块提供了Prometheus的API接口；labels模块提供了标签相关的功能；promql模块提供了Prometheus的查询引擎；scrape模块提供了抓取指标的功能；storage模块提供了TSDB存储引擎；tsdb模块提供了时间序列相关的功能；util模块提供了一些通用的工具函数。
+
+7.prompb目录
+
+prompb目录包含了Prometheus的protobuf定义文件。Prometheus使用protobuf作为数据传输格式，这个目录中的文件定义了Prometheus的数据结构。
+
+8.promql目录
+
+promql目录包含了Prometheus的PromQL查询引擎代码。PromQL是Prometheus的查询语言，它支持丰富的查询操作，例如聚合、过滤、计算等。
+
+9.rules目录
+
+rules目录包含了Prometheus的告警规则文件。Prometheus支持根据指标的值定义告警规则，并在条件满足时触发告警。
+
+10.sd目录
+
+sd目录包含了Prometheus的服务发现配置文件。这些配置文件定义了Prometheus如何发现服务，并抓取服务的指标数据。
+
+11.testutil目录
+
+testutil目录包含了Prometheus的测试工具。这些工具可以帮助开发人员进行单元测试和集成测试。
+
+12.web目录
+
+web目录包含了Prometheus的Web界面代码。这个目录中的文件定义了Prometheus的Web界面，包括图表、仪表盘等。
+
 源码目录结构说明
 ```text
 cmd目录是prometheus的入口和promtool规则校验工具的源码
@@ -79,6 +190,7 @@ NotifyDiscovery manager，用于告警服务的动态发现
 
 Web handler，查询的接口和页面的提供
 ```
+
 
 ## 架构分析
 
