@@ -4,7 +4,10 @@ categories: Kubernetes
 description: none
 keywords: Kubernetes
 ---
-# Kubernetes源码kube-scheduler
+# Kubernetes源码调度
+kube-scheduler组件是Kubernetes系统的核心组件之一，主要负责整个集群Pod资源对象的调度，根据内置或扩展的调度算法（预选与优选调度算法），将未调度的Pod资源对象调度到最优的工作节点上，从而更加合理、更加充分地利用集群的资源。
+
+## kube-scheduler简介
 kube-scheduler 负责分配调度 Pod 到集群内的节点上，它监听 kube-apiserver，查询还未分配 Node 的 Pod，然后根据调度策略为这些 Pod 分配节点（更新 Pod 的 NodeName 字段）。
 调度器需要充分考虑诸多的因素：
 - 公平调度
@@ -15,6 +18,23 @@ kube-scheduler 负责分配调度 Pod 到集群内的节点上，它监听 kube-
 - 内部负载干扰（inter-workload interference）
 - deadlines
 
+## kube-scheduler组件的启动流程
+在kube-scheduler组件的启动流程中，分别介绍如下。
+- 内置调度算法的注册。
+- Cobra命令行参数解析。
+- 实例化Scheduler对象。
+- 运行EventBroadcaster事件管理器。
+- 运行HTTP或HTTPS服务。
+- 运行Informer同步资源。
+- 领导者选举实例化。
+- 运行sched.Run调度器。
+
+
+
+
+
+
+-------
 ## 指定 Node 节点调度
 有三种方式指定 Pod 只运行在指定的 Node 节点上
 - nodeSelector：只调度到匹配指定 label 的 Node 上

@@ -4,7 +4,49 @@ categories: Kubernetes
 description: none
 keywords: Kubernetes
 ---
-# Kubernetes源码-apiserver
+# Kubernetes源码核心实现
+kube-apiserver组件负责将Kubernetes的“资源组、资源版本、资源”以RESTful风格的形式对外暴露并提供服务。该组件是Kubernetes系统集群中所有组件沟通的桥梁，例如在创建Pod资源对象时，所有组件都需要与kube-apiserver组件进行交互。
+
+## Kubernetes Pod资源对象创建流程
+Kubernetes Pod资源对象创建流程介绍如下。
+- 使用kubectl工具向Kubernetes API Server发起创建Pod资源对象的请求。
+- Kubernetes API Server验证请求并将其持久保存到Etcd集群中。
+- Kubernetes API Server基于Watch机制通知kube-scheduler调度器。
+- kube-scheduler调度器根据预选和优选调度算法为Pod资源对象选择最优的节点并通知Kubernetes API Server。
+- Kubernetes API Server将最优节点持久保存到Etcd集群中。
+- Kubernetes API Server通知最优节点上的kubelet组件。
+- kubelet组件在所在的节点上通过与容器进程交互创建容器。
+- kubelet组件将容器状态上报至Kubernetes API Server。
+- Kubernetes API Server将容器状态持久保存到Etcd集群中。
+
+## kube-apiserver架构设计详解
+kube-apiserver为丰富周边工具和库生态系统，提供了3种HTTP Server服务，用于将庞大的kube-apiserver组件功能进行解耦，这3种HTTP Server分别是APIExtensionsSerer、KubeAPIServer、AggregatorServer。不同服务的应用场景不同，提供的资源也不同，但它们都可以通过kubectl工具或接口进行资源管理。
+
+上面提到的3种服务分别介绍如下。
+- APIExtensionsServer ：API扩展服务（扩展器）。该服务提供了CRD （CustomResourceDefinitions）自定义资源服务，开发者可通过CRD对Kubernetes资源进行扩展，例如，通过crd-example扩展Kubernetes资源。该服务通过CustomResourceDefinitions对象进行管理，并通过extensionsapiserver.Scheme资源注册表管理CRD相关资源。
+- AggregatorServer ：API聚合服务（聚合器）。该服务提供了AA （APIAggregator）聚合服务，开发者可通过AA对Kubernetes聚合服务进行扩展，例如，metrics-server是Kubernetes系统集群的核心监控数据的聚合器，它是AggregatorServer服务的扩展实现。API聚合服务通过APIAggregator对象进行管理，并通过aggregatorscheme.Scheme资源注册表管理AA相关资源。
+- KubeAPIServer ：API核心服务。该服务提供了Kubernetes内置核心资源服务，不允许开发者随意更改相关资源，例如，Pod、Service等内置核心资源会由Kubernetes官方维护。API核心服务通过Master对象进行管理，并通过legacyscheme.Scheme资源注册表管理Master相关资源。
+
+APIExtensionsServer扩展服务和AggregatorServer聚合服务都是可以在不修改Kubernetes核心代码的前提下扩展Kubernetes API的方式。只有KubeAPIServer核心服务是Kubernetes系统运行的基础，不建议随意修改它。
+
+无论是APIExtensionsServer、KubeAPIServer还是AggregatorServer，它们都在底层依赖于GenericAPIServer。通过GenericAPIServer可以将Kubernetes资源与REST API进行映射。
+
+## kube-apiserver启动流程
+在Kubernetes系统中，kube-apiserver组件的设计是比较重的，它是所有资源控制的入口，启动流程也略复杂，kube-apiserver启动流程如图7-11所示。
+
+在kube-apiserver组件启动过程中，代码逻辑可分为9个步骤，分别介绍如下。
+- 资源注册。
+- Cobra命令行参数解析。
+- 创建APIServer通用配置。
+- 创建APIExtensionsServer。
+- 创建KubeAPIServer。
+- 创建AggregatorServer。
+- 创建GenericAPIServer。
+- 启动HTTP服务。
+- 启动HTTPS服务。
+
+
+
 apiserver 提供了对各类资源对象，如 Pod、Service、Deployment、CRD 等的增删改查，以及 Watch 的 API 接口，是整个集群的操作入口。
 
 ## 简介
