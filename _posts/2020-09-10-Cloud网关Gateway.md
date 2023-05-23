@@ -1,10 +1,10 @@
 ---
 layout: post
-categories: [Gateway]
+categories: [SpringCloud]
 description: none
-keywords: Gateway
+keywords: SpringCloud
 ---
-# Gateway
+# SpringCloud网关Gateway
 Spring Cloud Gateway基于Spring Boot 2，是Spring Cloud的全新项目，该项目提供了一个构建在Spring生态之上的API网关。Spring Cloud Gateway旨在提供一种简单而有效的途径来转发请求，并为它们提供横切关注点，例如：安全性、监控/指标和弹性。
 
 ## 基础应用

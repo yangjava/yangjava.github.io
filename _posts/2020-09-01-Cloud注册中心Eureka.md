@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Eureka
+categories: [SpringCloud,Eureka]
 description: none
 keywords: Eureka
 ---

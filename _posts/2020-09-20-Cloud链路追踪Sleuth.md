@@ -1,8 +1,8 @@
 ---
 layout: post
-categories: [Sleuth]
+categories: [SpringCloud]
 description: none
-keywords: Sleuth
+keywords: SpringCloud
 ---
 # 服务链路追踪Sleuth
 Spring Cloud提供的链路监控组件Spring Cloud Sleuth，这个组件提供了分布式链路追踪的解决方案，用以追踪微服务系统中一次请求的完整过程。
