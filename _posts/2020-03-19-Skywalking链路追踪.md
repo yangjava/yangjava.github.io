@@ -4,9 +4,114 @@ categories: Skywalking
 description: none
 keywords: Skywalking
 ---
-## 源码分析-Trace收集
+## Skywalking链路追踪
+skywalking通过使用字节码增强技术实现对特定方法的监控，并收集数据用于分析。
 
-从这里开始，我们将开始介绍 Trace 格式、收集方式以及上报方式。
+## 分布式调用链标准（OpenTracing）
+OpenTracing最初是由Ben Sigelman在2016年发布的一篇论文“Distributed Tracing with OpenTracing”。该论文提出了分布式追踪的概念，并阐述了OpenTracing的设计目标、基本原则和实现方式。
+论文指出，分布式追踪的核心挑战在于需要在多个服务之间建立上下文，并跨越多个异步和同步调用。OpenTracing通过使用上下文传递和操作ID来解决这个问题，并提供了一种可扩展的方式来生成和收集跟踪数据。
+
+OpenTracing 是一个中立的分布式追踪的 API 规范，提供了统一接口方便开发者在自己的服务中集成一种或者多种分布式追踪的实现，使得开发人员能够方便的添加或更换追踪系统的实现。OpenTracing 可以解决不同的分布式追踪系统 API 不兼容的问题，各个分布式追踪系统都来实现这套接口。
+OpenTracing 的数据模型，主要有以下三个：
+- Trace：可以理解为一个完整请求链路，也可以认为是由多个 span 组成的有向无环图（DAG）；
+- Span：span 代表系统中具有开始时间和执行时长的逻辑运行单元，只要是一个完整生命周期的程序访问都可以认为是一个 span，比如一次数据库访问，一次方法的调用，一次 MQ 消息的发送等；每个 span 包含了操作名称、起始时间、结束时间、阶段标签集合（Span Tag）、阶段日志（Span Logs）、阶段上下文（SpanContext）、引用关系（Reference）；
+- SpanContext： Trace 的全局上下文信息，span 的状态通过 SpanContext 跨越进程边界进行传递，比如包含 trace id，span id，Baggage Items（一个键值对集合）。
+
+TraceId是这个请求的全局标识。内部的每一次调用就称为一个 Span，每个 Span 都要带上全局的 TraceId，这样才可把全局 TraceId 与每个调用关联起来。这个 TraceId 是通过 SpanContext 传输的，既然要传输，显然都要遵循协议来调用。如果我们把传输协议比作车，把 SpanContext 比作货，把 Span 比作路应该会更好理解一些。
+
+## Skywalking链路模型
+Skywalking链路模型主要如下：
+- Trace
+表示一个完整调用链，包括跨进程、跨线程的所有`Segment`的集合。也可以认为是由多个`span`组成的有向无环图(DAG)
+
+- Segment
+在`Skywalking`的设计中，在`Trace`级别和`Span`级别之间加了一个`Segment`的概念，表示一个进程（JVM）或线程内的所有操作的集合，即包含若干个`Span`。
+
+- Span
+`Span`代表系统中具有开始时间和执行时长的逻辑运行单元，只要是一个完整生命周期的程序访问都可以认为是一个`Span`，比如一次数据库访问，一次方法的调用，一次 MQ 消息的发送等。
+每个`Span`包含了操作名称、起始时间、结束时间、阶段标签集合（Span Tag）、阶段日志（Span Logs）、阶段上下文（SpanContext）、引用关系（Reference）。
+
+Skywalking 中的Span分为三类：
+  - EntrySpan
+入栈Span。表示服务端的入口。Segment的入口，一个Segment有且仅有一个Entry Span，比如HTTP或者RPC的入口，或者MQ消费端的入口等。
+  - LocalSpan
+通常用于记录一个本地方法的调用。
+  - ExitSpan
+出栈Span。Segment的出口，一个Segment可以有若干个Exit Span，比如HTTP或者RPC的出口，MQ生产端，或者DB、Cache的调用等。
+
+- SpanContext
+Trace 的全局上下文信息，span 的状态通过 SpanContext 跨越进程边界进行传递，比如包含 trace id，span id，Baggage Items（一个键值对集合）。
+
+## 上下文载体ContextCarrier
+为了实现分布式追踪, 需要绑定跨进程的追踪, 并且上下文应该在整个过程中随之传播. 这就是 ContextCarrier 的职责。
+
+以下是有关如何在 A -> B 分布式调用中使用 ContextCarrier 的步骤。
+- 在客户端, 创建一个新的空的 ContextCarrier。
+- 通过 ContextManager#createExitSpan 创建一个 ExitSpan 或者使用 ContextManager#inject 来初始化 ContextCarrier。
+- 将 ContextCarrier 所有信息放到请求头 (如 HTTP HEAD), 附件(如 Dubbo RPC 框架), 或者消息 (如 Kafka) 中
+- 通过服务调用, 将 ContextCarrier 传递到服务端。
+- 在服务端, 在对应组件的头部, 附件或消息中获取 ContextCarrier 所有内容。
+- 通过 ContextManager#createEntrySpan 创建 EntrySpan 或者使用 ContextManager#extract 来绑定服务端和客户端。
+
+让我们通过 Apache HttpComponent client 插件和 Tomcat 7 服务器插件演示, 步骤如下:
+
+客户端 Apache HttpComponent client 插件
+```
+   ContextCarrier contextCarrier = new ContextCarrier();
+   span = ContextManager.createExitSpan("/span/operation/name", contextCarrier, "ip:port");
+   CarrierItem next = contextCarrier.items();
+   while (next.hasNext()) {
+       next = next.next();
+       httpRequest.setHeader(next.getHeadKey(), next.getHeadValue());
+   }
+```
+
+服务端 Tomcat 7 服务器插件
+```
+    ContextCarrier contextCarrier = new ContextCarrier();
+    CarrierItem next = contextCarrier.items();
+    while (next.hasNext()) {
+        next = next.next();
+        next.setHeadValue(request.getHeader(next.getHeadKey()));
+        }
+
+    span = ContextManager.createEntrySpan(“/span/operation/name”, contextCarrier);
+```
+
+## 上下文快照ContextSnapshot
+除了跨进程, 跨线程也是需要支持的, 例如异步线程（内存中的消息队列）和批处理在 Java 中很常见. 跨进程和跨线程十分相似, 因为都是需要传播上下文. 唯一的区别是, 跨线程不需要序列化.
+
+以下是有关跨线程传播的三个步骤：
+- 使用 ContextManager#capture 方法获取 ContextSnapshot 对象.
+- 让子线程以任何方式, 通过方法参数或由现有参数携带来访问 ContextSnapshot
+- 在子线程中使用 ContextManager#continued
+
+## 上下文管理器 (ContextManager)
+ContextManager 提供所有主要 API.
+
+创建 EntrySpan
+```
+public static AbstractSpan createEntrySpan(String endpointName, ContextCarrier carrier)
+```
+根据操作名称(例如服务名称, uri) 和 上下文载体 (ContextCarrier) 创建 EntrySpan.
+
+创建 LocalSpan
+```
+public static AbstractSpan createLocalSpan(String endpointName)
+```
+根据操作名称(例如完整的方法签名)创建 (e.g. full method signature)
+
+创建 ExitSpan
+```
+public static AbstractSpan createExitSpan(String endpointName, ContextCarrier carrier, String remotePeer)
+```
+根据操作名称(例如服务名称, uri), 上下文载体 (ContextCarrier) 以及对等端 (peer) 地址 (例如 ip + port 或 hostname + port) 创建 ExitSpan.
+
+
+
+
+
+
 
 #### **Trace基本概念**
 
@@ -52,13 +157,7 @@ Span间关系
 
 回到 Skywalking ，在 Skywalking 的设计中，在 Trace级别 和 Span 级别之间加了一个 Segment 的概念，用于表示一个 OS 里面的 Span 集合。
 
-Skywalking 中的Span分为三类：
 
-1、EntrySpan：表示服务端的入口，包括但不限于Http服务、RPC服务、MQ-Consumer等
-
-2、LocalSpan：表示本地的方法调用
-
-3、ExitSpan：表示 Client 或是MQ-producer
 
 Skywalking 中具体的 Span 实现在后面分析收集 Trace 的小节中再详细分析，这里先不深入分析了。
 
