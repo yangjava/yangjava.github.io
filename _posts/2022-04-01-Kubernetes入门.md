@@ -843,3 +843,6 @@ Annotation（注解）与Label类似，也使用key/value键值对的形式进�
 
 Kubernetes 官方文档：[https://kubernetes.io/zh/](https://kubernetes.io/zh/)
 
+Kubernetes权威指南
+
+

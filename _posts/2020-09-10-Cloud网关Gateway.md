@@ -55,7 +55,7 @@ Spring Cloud Gateway具有如下特征：
 如上引入了Kotlin相关的依赖，这里需要支持Kotlin的路由配置。Spring Cloud Gateway的使用需要排除Web相关的配置，且必须引入WebFlux的依赖，应用服务启动时会检查WebFlux依赖。
 
 路由断言有多种类型，根据请求的时间、Host地址、路径和请求方法等。如下定义的是一个基于路径的路由断言匹配。
-```java
+```
 @Bean
 public RouterFunction<ServerResponse> testFunRouterFunction() {
     RouterFunction<ServerResponse> route = RouterFunctions.route(
@@ -67,7 +67,7 @@ public RouterFunction<ServerResponse> testFunRouterFunction() {
 当请求的路径为/testfun时，直接返回状态码200，且响应体为hello的字符串。
 
 网关经常需要对路由请求进行过滤，对符合条件的请求进行一些操作，如增加请求头、增加请求参数、增加响应头和断路器等功能。例如下面的示例代码：
-```java
+```
 @Bean
 public RouteLocator customRouteLocator(RouteLocatorBuilder builder, ThrottleGatewayFilterFactory throttle) {
         return builder.routes()
@@ -100,7 +100,7 @@ spring:
 如上的配置定义了全局过滤器与一条路由。全局过滤器为所有的响应加上头部X-Response-Default-Foo：Default-Bar。另外还定义了id为default_path_to_http的路由，优先级比较低。符合路由断言条件的请求将会转发到blueskykong.com。
 
 Spring Cloud Gateway支持使用Kotlin自定义路由
-```java
+```
 @Configuration
 class AdditionalRoutes {
     @Bean

@@ -54,7 +54,7 @@ public class RestClientDemo {
 }
 ```
 对于RestClient类而言，RestClient类是线程安全的。在理想情况下，它与使用它的应用程序具有相同的生命周期。因此，当不再需要时，应该关闭它，以便释放它使用的所有资源及底层HTTP客户机实例及其线程，这一点很重要。关闭的方法如下所示：
-```java
+```
 restClient.close();
 ```
 RestClientBuilder允许在构建RestClient时选择性地设置以下配置参数。

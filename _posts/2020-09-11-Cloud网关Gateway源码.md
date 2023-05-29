@@ -26,7 +26,7 @@ keywords: Gateway
 - GatewayAutoConfiguration，核心配置类，配置路由规则、过滤器等。
 
 这些类的配置方式就不一一列出讲解了，主要看一下涉及的网关属性配置定义，很多对象的初始化都依赖于应用服务中配置的网关属性，GatewayProperties是网关中主要的配置属性类，代码如下所示：
-```java
+```
 @ConfigurationProperties("spring.cloud.gateway")
 @Validated
 public class GatewayProperties {
@@ -47,12 +47,12 @@ GatewayProperties中有三个属性，分别是路由、默认过滤器和MediaT
 
 ## 网关处理器
 请求到达网关之后，会有各种Web处理器对请求进行匹配与处理。按照以下顺序讲解负责请求路由选择和定位的处理器：
-```java
+```
 DispatcherHandler -> RoutePredicateHandlerMapping -> FilteringWebHandler -> DefaultGatewayFilterChain
 ```
 ### 请求的分发器
 Spring Cloud Gateway引入了Spring WebFlux，DispatcherHandler是其访问入口，请求分发处理器。在之前的项目中，引入了Spring MVC，而它的分发处理器是DispatcherServlet。下面具体看一下网关收到请求后，如何匹配HandlerMapping，代码如下所示：
-```java
+```
 public class DispatcherHandler implements WebHandler, ApplicationContextAware {
     @Override
     public Mono<Void> handle(ServerWebExchange exchange) {
@@ -73,7 +73,7 @@ public class DispatcherHandler implements WebHandler, ApplicationContextAware {
 DispatcherHandler实现了WebHandler接口，WebHandler接口用于处理Web请求。DispatcherHandler的构造函数会初始化HandlerMapping。核心处理的方法是handle（ServerWebExchange exchange），而HandlerMapping是一个定义了请求与处理器对象映射的接口且有多个实现类，如ControllerEndpointHandlerMapping和RouterFunctionMapping。
 
 可以看到handler映射共有六种实现，网关主要关注的是RoutePredicateHandlerMapping。RoutePredicateHandlerMapping继承了抽象类AbstractHandlerMapping，getHandler（exchange）方法就定义在该抽象类中，如下所示：
-```java
+```
 public abstract class AbstractHandlerMapping extends ApplicationObjectSupport implements HandlerMapping, Ordered {
     @Override
     public Mono<Object> getHandler(ServerWebExchange exchange) {
@@ -107,7 +107,7 @@ public class RoutePredicateHandlerMapping extends AbstractHandlerMapping {
 }
 ```
 RoutePredicateHandlerMapping的构造函数接收两个参数：FilteringWebHandler网关过滤器和RouteLocator路由定位器，setOrder（1）用于设置该对象初始化的优先级。Spring Cloud Gateway的GatewayWebfluxEndpoint提供的HTTP API不需要经过网关转发，它通过RequestMappingHandlerMapping进行请求匹配处理，因此需要将RoutePredicateHandlerMapping的优先级设置为低于RequestMappingHandlerMapping。
-```java
+```
 // RoutePredicateHandlerMapping.java
 protected Mono<?> getHandlerInternal(ServerWebExchange exchange) {
     //设置GATEWAY_HANDLER_MAPPER_ATTR为 RoutePredicateHandlerMapping
