@@ -29,17 +29,17 @@ PV作为存储资源，主要包括存储能力、访问模式、存储类型、
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: nfs
+  name: pv1
 spec:
-  storageClassName: manual
-  persistentVolumeReclaimPolicy: Recycle
   capacity:
-    storage: 1Gi
+    storage: 5Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  storageClassName: slow
   nfs:
-    server: 10.244.1.4
-    path: "/"
+    path: /tmp
+    server: 172.17.0.2
 ```
 Kubernetes支持的PV类型如下。
 - AWSElasticBlockStore：AWS公有云提供的ElasticBlockStore。
@@ -114,14 +114,19 @@ PV可以设定其存储的类别，通过storageClassName参数指定一个Stora
 
 ### 回收策略（Reclaim Policy）
 通过PV定义中的persistentVolumeReclaimPolicy字段进行设置，可选项如下。
-- 保留：保留数据，需要手工处理。
-- 回收空间：简单清除文件的操作（例如执行rm -rf /thevolume/*命令）。
-- 删除：与PV相连的后端存储完成Volume的删除操作（如AWS EBS、GCE PD、Azure Disk、OpenStack Cinder等设备的内部Volume清理）。
+- 保留(Retain):
+保留数据，需要手工处理。
+- 回收空间( Recycle)
+简单清除文件的操作（例如执行rm -rf /thevolume/*命令）。
+- 删除(Delete)
+与PV相连的后端存储完成Volume的删除操作（如AWS EBS、GCE PD、Azure Disk、OpenStack Cinder等设备的内部Volume清理）。
 
 目前，只有NFS和HostPath两种类型的存储支持Recycle策略；AWS EBS、GCE PD、Azure Disk和Cinder volumes支持Delete策略。
 
 ### 挂载参数（Mount Options）
-在将PV挂载到一个Node上时，根据后端存储的特点，可能需要设置额外的挂载参数，可以根据PV定义中的mountOptions字段进行设置。下面的例子为对一个类型为gcePersistentDisk的PV设置挂载参数：
+在将PV挂载到一个Node上时，根据后端存储的特点，可能需要设置额外的挂载参数，可以根据PV定义中的mountOptions字段进行设置。
+
+下面的例子为对一个类型为gcePersistentDisk的PV设置挂载参数：
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -161,23 +166,64 @@ PV可以设置节点亲和性来限制只能通过某些Node访问Volume，可�
 
 这个参数仅用于Local存储卷，例如：
 ```yaml
-
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: example-local-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  local:
+    path: /test/disks/ssd1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kuberneter.io/hostname
+          operator: In
+          values:
+          - master
 ```
 公有云提供的存储卷（如AWS EBS、GCE PD、Azure Disk等）都由公有云自动完成节点亲和性设置，无须用户手工设置。
 
 ## PV生命周期的各个阶段
 某个PV在生命周期中可能处于以下4个阶段（Phaes）之一。
-- Available：可用状态，还未与某个PVC绑定。
-- Bound：已与某个PVC绑定。
-- Released：绑定的PVC已经删除，资源已释放，但没有被集群回收。
-- Failed：自动资源回收失败。
+- Available
+可用状态，还未与某个PVC绑定。
+- Bound
+已与某个PVC绑定。
+- Released
+绑定的PVC已经删除，资源已释放，但没有被集群回收。
+- Failed
+自动资源回收失败。
 
 定义了PV以后如何使用呢？这时就需要用到PVC了。
 
 ## PVC详解
-PVC作为用户对存储资源的需求申请，主要包括存储空间请求、访问模式、PV选择条件和存储类别等信息的设置。下例声明的PVC具有如下属性：申请8GiB存储空间，访问模式为ReadWriteOnce，PV 选择条件为包含标签“release=stable”并且包含条件为“environment In　[dev]”的标签，存储类别为“slow”（要求在系统中已存在名为slow的StorageClass）：
-```yaml
+PVC作为用户对存储资源的需求申请，主要包括存储空间请求、访问模式、PV选择条件和存储类别等信息的设置。
 
+下例声明的PVC具有如下属性：申请8GiB存储空间，访问模式为ReadWriteOnce，PV 选择条件为包含标签“release=stable”并且包含条件为“environment In　[dev]”的标签，存储类别为“slow”（要求在系统中已存在名为slow的StorageClass）：
+```yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: myclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: slow
+  selector:
+    matchLabels:
+      release: "stable"
+    matchExpressions:
+     - {key: environment, operator: In, values: [dev]}
 ```
 PVC的关键配置参数说明如下。
 - 资源请求（Resources）：描述对存储资源的请求，目前仅支持request.storage的设置，即存储空间大小。
