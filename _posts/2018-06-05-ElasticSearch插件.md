@@ -115,7 +115,16 @@ ICU插件的规范化字符过滤器主要用于规范化字符，可用于所�
 下面通过一个示例，展示字符过滤器的默认用法和自定义字符过滤器：
 
 
-
+## 自带的几种分词器
+- standard	标准标记器，标准过滤器，小写过滤器，停止过滤器
+- simple	小写的分词器
+- stop	小写标记器，停止过滤器
+- keyword	不分词，内容整体作为一个值
+- whitespace	以空格分词
+- language	以语言分词
+- snowball	标准标记器，标准过滤器，小写过滤器，停止过滤器，雪球过滤器
+- custom	自定义分词。至少需要指定一个 Tokenizer, 零个或多个Token Filter, 零个或多个Char Filter
+- pattern	正则分词
 
 
 

@@ -239,8 +239,9 @@ Elasticsearch 源码解析与优化实战
 
 Elasticsearch实战与原理解析
 
+Elasticsearch: 权威指南 https://www.elastic.co/guide/cn/elasticsearch/guide/current/foreword_id.html
 
-
+Elasticsearch 基础教程 https://www.knowledgedict.com/tutorial/elasticsearch-intro.html
 
 
 

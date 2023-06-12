@@ -613,6 +613,22 @@ public class IPCheckFilter implements GlobalFilter, Ordered {
 ```
 过滤的使用虽然比较简单，但作用很大，可以处理很多需求，上面讲的IP认证拦截只是冰山一角，更多的功能需要我们自己基于过滤器去实现。
 
+## 核心全局过滤器
+GlobalFilter接口与GatewayFilter具有相同的签名。这些是特殊的过滤器，有条件地应用于所有路由。
+
+GlobalFilter拦截式的契约，Web请求的链式处理，可用于实现横切、应用程序无关的需求，如Security、Timeout等。
+
+## 组合全局过滤器和网关过滤器
+当请求匹配路由时，过滤web处理程序将GlobalFilter的所有实例和GatewayFilter的所有特定路由实例添加到过滤器链中。这个组合过滤器链是由
+org.springframework.core.Ordered接口排序的，你可以通过实现getOrder()方法来设置它。
+
+### Forward Routing Filter
+ForwardRoutingFilter在交换属性 ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR中查找URI。如果URL是前向模式(例如forward:///xxxx)，它会使用Spring DispatcherHandler来处理请求。请求URL中的路径部分被前向URL中的路径覆盖。未修改的原始URL被附加到ServerWebExchangeUtils中的列表中ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR属性。
+
+### 负载均衡过滤器
+ReactiveLoadBalancerClientFilter在名为 ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR的exchange属性中查找URI。如果URL具有lb模式(例如lb://myservice)，它会使用Spring Cloud ReactorLoadBalancer将名称解析为实际的主机和端口，并替换相同属性中的URI。未修改的原始URL被附加到ServerWebExchangeUtils中的列表中
+GATEWAY_ORIGINAL_REQUEST_URL_ATTR属性。过滤器还在ServerWebExchangeUtils中查找 GATEWAY_SCHEME_PREFIX_ATTR属性，查看它是否等于lb。如果等于，则应用相同的规则。
+
 ## 限流实战
 开发高并发系统时有三把利器用来保护系统：缓存、降级和限流。API网关作为所有请求的入口，请求量大，我们可以通过对并发访问的请求进行限速来保护系统的可用性。
 
@@ -703,7 +719,7 @@ Spring Cloud微服务架构进阶
 
 Spring Cloud微服务：入门、实战与进阶
 
-
+重新定义Spring Cloud实战
 
 
 
