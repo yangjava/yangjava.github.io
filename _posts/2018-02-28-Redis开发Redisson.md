@@ -124,7 +124,21 @@ return res
 那Redis是如何保证在分布式下这些限流信息数据的一致性的？答案是不需要保证，在这个场景下，信息天然就是一致性的。原因是Redis的单进程数据处理模型，在同一个Key下，所有的eval请求都是串行的，所有不需要考虑数据并发操作的问题。在这里，Redisson也使用了HashTag，保证所有的限流信息都存储在同一个Redis实例上。
 
 
+## RedisClient
+```
+@Configuration
+public class MyRedissonConfig {
 
+    //注册RedissonClient对象
+    @Bean(destroyMethod="shutdown")
+    RedissonClient redisson() throws IOException {
+        Config config = new Config();
+        config.useSingleServer().setAddress("redis://127.0.0.1:6379");
+        RedissonClient redissonClient = Redisson.create(config);
+        return redissonClient;
+    }
+}
+```
 
 
 

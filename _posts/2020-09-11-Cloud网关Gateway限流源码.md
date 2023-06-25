@@ -190,5 +190,172 @@ end
 return { allowed_num, new_tokens }
 ```
 
+## 场景
+在使用SCG限流功能时，默认情况下是按秒限流，即一秒允许多少个请求，现需要根据不同时间频率进行限流，即限制每分钟、每小时或者每天限流。
 
+### 分析
+SCG的限流使用的guava的ratelimiter工具，令牌桶模式，参数包括以下3个：
+- replenishRate: 每次补充令牌数量
+- burstCapacity: 令牌桶最大容量，突发请求数量
+- requestedTokens: 每次请求消耗令牌的数量
 
+### 使用方案
+- 每秒限制请求1次
+```
+- name: RequestRateLimiter #基于redis漏斗限流
+  args:
+    key-resolver: "#{@myResolver}"
+    redis-rate-limiter:
+      replenishRate: 1
+      burstCapacity: 1
+      requestedTokens: 1
+
+```
+
+- 每秒限制请求10次
+```
+- name: RequestRateLimiter #基于redis漏斗限流
+  args:
+    key-resolver: "#{@myResolver}"
+    redis-rate-limiter:
+      replenishRate: 10
+      burstCapacity: 10
+      requestedTokens: 1
+```
+
+- 每分钟限制请求1次
+```
+- name: RequestRateLimiter #基于redis漏斗限流
+  args:
+    key-resolver: "#{@myResolver}"
+    redis-rate-limiter:
+      replenishRate: 1
+      burstCapacity: 60
+      requestedTokens: 60
+```
+
+- 每分钟限制请求10次
+```
+- name: RequestRateLimiter #基于redis漏斗限流
+  args:
+    key-resolver: "#{@myResolver}"
+    redis-rate-limiter:
+      replenishRate: 1
+      burstCapacity: 60
+      requestedTokens: 6
+```
+
+- 每小时限制请求1次
+```
+- name: RequestRateLimiter #基于redis漏斗限流
+  args:
+    key-resolver: "#{@myResolver}"
+    redis-rate-limiter:
+      replenishRate: 1
+      burstCapacity: 3600
+      requestedTokens: 3600
+```
+
+- 每小时限制请求10次
+```
+- name: RequestRateLimiter #基于redis漏斗限流
+  args:
+    key-resolver: "#{@myResolver}"
+    redis-rate-limiter:
+      replenishRate: 1
+      burstCapacity: 3600
+      requestedTokens: 360
+```
+其他频率以此类推，调整三个参数即可。
+
+### 其他
+当触发限流过滤时，在SCG会在redis插入2个key，分别是
+- request_rate_limiter.{key}.tokens：当前令牌数，访问时根据令牌数判断是否有资源访问
+- request_rate_limiter.{key}.timestamp：上一次访问时间，用于访问时计算上一次到这一次可增长的令牌数，并增加到tokens中。
+- TTL：redis中限流key过期时间，规则为burstCapacity/replenishRate*2s， 如1分钟限流key过期时间为60/1*2s=120s
+
+## 自定义限流
+```
+package com.juzhun.kqc.gateway.service;
+
+import cn.hutool.core.collection.CollectionUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scripting.support.ResourceScriptSource;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import javax.annotation.Resource;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+@Component
+@Slf4j
+public class RedisLimitService {
+
+    @Resource
+    private ReactiveStringRedisTemplate reactiveStringRedisTemplate;
+
+    private static final String PREFIX = "qps_limit_";
+
+    public Boolean isBlack(String key, List<String> blackList){
+        if (CollectionUtil.isNotEmpty(blackList)) {
+            return blackList.stream().anyMatch(e -> e.contains(key));
+        }
+        return false;
+    }
+
+    // 限流实现
+    public Boolean limitQps(String uidKey, long rate, long rateInterval) {
+        String key = PREFIX + uidKey;
+
+        DefaultRedisScript redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(new ResourceScriptSource(
+                new ClassPathResource("META-INF/scripts/request_rate_limiter.lua")));
+        redisScript.setResultType(List.class);
+
+        // The arguments to the LUA script. time() returns unixtime in seconds.
+        List<String> scriptArgs = Arrays.asList(rate + "",
+                rateInterval * rate + "", Instant.now().getEpochSecond() + "",
+                1 + "");
+        // allowed, tokens_left = redis.eval(SCRIPT, keys, args)
+        Flux<List<Long>> flux = this.reactiveStringRedisTemplate.execute(redisScript, getKeys(key),
+                scriptArgs);
+
+        Mono<Boolean> mono = flux.onErrorResume(throwable -> {
+            if (log.isDebugEnabled()) {
+                log.debug("Error calling rate limiter lua", throwable);
+            }
+            return Flux.just(Arrays.asList(1L, -1L));
+        }).reduce(new ArrayList<Long>(), (longs, l) -> {
+            longs.addAll(l);
+            return longs;
+        }).map(results -> {
+            boolean allowed = results.get(0) == 1L;
+            Long tokensLeft = results.get(1);
+            log.info("限流器Key:{},流量限制:{},可用流量:{},是否通过:{}", key, rate, tokensLeft, allowed);
+            return allowed;
+        });
+        return mono.block();
+    }
+
+    static List<String> getKeys(String id) {
+        // use `{}` around keys to use Redis Key hash tags
+        // this allows for using redis cluster
+
+        // Make a unique key per user.
+        String prefix = "request_rate_limiter.{" + id;
+
+        // You need two Redis keys for Token Bucket.
+        String tokenKey = prefix + "}.tokens";
+        String timestampKey = prefix + "}.timestamp";
+        return Arrays.asList(tokenKey, timestampKey);
+    }
+}
+
+```
