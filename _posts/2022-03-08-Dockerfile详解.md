@@ -302,78 +302,85 @@ ENV myName="John Doe" myDog=Rex\ The\ Dog \
 
 当容器运行时，可以通过Docker inspect来查看，同时也可以在执行Docker run时通过-e来重新设定环境变量。
 
+## COPY 与 ADD 命令
+Dockerfile 中提供了两个非常相似的命令 COPY 和 ADD，总结其各自适合的应用场景。
+
+## Build 上下文的概念
+在使用 docker build 命令通过 Dockerfile 创建镜像时，会产生一个 build 上下文(context)。所谓的 build 上下文就是 docker build 命令的 PATH 或 URL 指定的路径中的文件的集合。在镜像 build 过程中可以引用上下文中的任何文件，比如我们要介绍的 COPY 和 ADD 命令，就可以引用上下文中的文件。
+
+默认情况下 docker build -t testx . 命令中的 . 表示 build 上下文为当前目录。当然我们可以指定一个目录作为上下文，比如下面的命令：
+```
+$ docker build -t testx /home/nick/hc
+```
+我们指定 /home/nick/hc 目录为 build 上下文，默认情况下 docker 会使用在上下文的根目录下找到的 Dockerfile 文件。
+
+### COPY 和 ADD 命令不能拷贝上下文之外的本地文件
+对于 COPY 和 ADD 命令来说，如果要把本地的文件拷贝到镜像中，那么本地的文件必须是在上下文目录中的文件。其实这一点很好解释，因为在执行 build 命令时，docker 客户端会把上下文中的所有文件发送给 docker daemon。考虑 docker 客户端和 docker daemon 不在同一台机器上的情况，build 命令只能从上下文中获取文件。如果我们在 Dockerfile 的 COPY 和 ADD 命令中引用了上下文中没有的文件，就会收到类似下面的错误：
+
 ### ADD命令
+ADD指令的功能是将主机构建环境（上下文）目录中的文件和目录、以及一个URL标记的文件 拷贝到镜像中。
+
+其格式是：
 ```
 ADD <src>... <dest>
-ADD ["<src>",... "<dest>"]
+ADD ["<src>",... "<dest>"] （包含空格的路径使用这种格式）
 ```
-ADD命令有两种用法，其实两种用法是相同的，第二种用法可以用来处理文件路径有空格的情况。
-
 ADD命令是将src标记的文件，添加到容器中dest所标记的路径中去。src标记的文件可以是本地文件，也可以本地目录，甚至可以是远程URL链接。
 
 当src标记的是本地文件或者目录时，其相对路径应该是相对于Dockerfile所在目录的路径，而dest则应该指向容器中的目录。如果这个目录不存在，那么当ADD命令执行时，将会在容器中自动创建此目录。
 
-在src标记的路径中，允许使用通配符，例如：
+有如下注意事项：
 ```
+FROM ubuntu
+MAINTAINER hello
+
+# 在src标记的路径中，允许使用通配符，例如：
 ADD hom* /mydir/        # 添加所有以hom开头的文件
 ADD hom?.txt /mydir/    # ?可以被任意单个字符所代替
-```
-而dest的路径则不允许使用通配符，并且其路径必须是绝对路径，或者相对于WORKDIR的相对路径，例如：
-```
+
+# 而dest的路径则不允许使用通配符，并且其路径必须是绝对路径，或者相对于WORKDIR的相对路径，例如：
 ADD test aDir/          #假设/是WORKDIR，那么就添加test到/aDir/
+
+ADD test1.txt test1.txt
+ADD test1.txt test1.txt.bak
+
+# 如果源路径是个文件，且目标路径是以 / 结尾， 则docker会把目标路径当作一个目录，会把源文件拷贝到该目录下。
+## 如果目标路径不存在，则会自动创建目标路径。
+ADD test1.txt /mydir/
+
+# 如果源路径是个文件，且目标路径是不是以 / 结尾，则docker会把目标路径当作一个文件。
+## 如果目标路径不存在，会以目标路径为名创建一个文件，内容同源文件；
+## 如果目标文件是个存在的文件，会用源文件覆盖它，当然只是内容覆盖，文件名还是目标文件名。
+## 如果目标文件实际是个存在的目录，则会源文件拷贝到该目录下。 注意，这种情况下，最好显示的以 / 结尾，以避免混淆。
+ADD data1  data1
+ADD data2  data2
+
+# 如果源文件是个归档文件（压缩文件），则docker会自动帮解压。
+ADD zip.tar /myzip
+
+# 如果源路径是个目录，且目标路径不存在，则docker会自动以目标路径创建一个目录，把源路径目录下的文件拷贝进来。
+## 如果目标路径是个已经存在的目录，则docker会把源路径目录下的文件拷贝到该目录下。
+ADD data/  test
+ADD data/  test/
 ```
-当ADD命令执行成功之后，所有新添加的文件或者目录的UID和GID默认都为0。
-
-在使用ADD命令时，有以下几条规则需要遵守。
-- 规则1
-src指定的路径必须存在于Dockerfile所在目录。例如，下面所给定的路径就是非法路径：
+ADD 的最佳用途是将本地压缩包文件自动提取到镜像中：如下情况，自动解压缩的功能非常有用，比如官方镜像 ubuntu 中：
 ```
-ADD ../something /something
+FROM scratch
+ADD ubuntu-xenial-core-cloudimg-amd64-root.tar.gz /
+...
 ```
-因为在Dockerfile执行时，Docker Daemon会读取Dockerfile所在目录的所有数据。如果ADD命令使用的文件在此目录中不存在，那么Daemon将找不到指定文件。
-- 规则2
-如果src指定的是URL，并且dest所指定的路径没有以“/”结尾，那么URL下载的数据将直接覆盖dest所给定的文件。
-- 规则3
-如果src指定的是URL，并且dest所指定的路径是以“/”结尾的。那么URL下载后的数据将直接写入dest所指定的目录中，例如：
-```
-ADD http://example.com/foobar /
-```
-ADD命令将会下载foobar目录，并且将此目录放入容器的根目录，结果是在容器中出现/footbar目录。
+提示：但在某些情况下，如果我们真的是希望复制个压缩文件进去，而不解压缩，这时就不可以使用 ADD 命令了。
 
-规则4
+由于镜像的体积很重要，所以强烈建议不要使用 ADD 从远程 URL 获取文件，下载文件我们应该使用 curl 或 wget 来代替。
 
-如果src指向的是一个目录，那么ADD指令将包括元数据在内的所有数据复制到容器中dest所指定的文件中，但src所指定的目录本身不会被复制进去，只会复制此目录下的文件。
-
-规则5
-
-如果src指向的是一个已知格式的压缩文件，例如，gzip、bzip2或者xz格式的文件。当添加到容器之后，会自动执行解压缩动作。而从URL中下载的压缩文件则不会执行解压缩。
-
-规则6
-
-如果src使用通配符指定了多个文件，那么此时dest必须是一个以“/”结尾的目录。
-
-规则7
-
-如果dest指向的路径没有以“/”结尾，那么这个路径指向的文件将会被src指定的文件覆盖。
-
-规则8
-
-如果dest指向的路径不存在，那么此路径中所涉及的父级目录都将会被创建。
-
-规则9
-
-当src指向的URL没有下载权限时，首先需要使用RUN wget或者RUN curl获取文件。
-
-规则10
-
-当ADD命令所标记的文件发生变化时，从变化的那个ADD命令开始，保存在缓存中的镜像将会失效，同时RUN命令产生的缓存镜像也会失效。
+对于不需要自动解压的文件或目录，应该始终使用 COPY。
 
 ### COPY命令
 ```
 COPY <src>... <dest>
 COPY ["<src>",... "<dest>"]
 ```
-同ADD命令一样，COPY命令的第二种用法是用来处理路径中存在空格的情况。
+COPY指令和ADD指令功能和使用方式类似。只是COPY指令不会做自动解压工作。
 
 COPY命令也是向容器中指定路径下添加文件。在添加文件时，同样需要确认此文件的确存在于Dockerfile所在目录中。与ADD命令相同，COPY命令也支持下例格式中的通配符：
 ```
@@ -382,40 +389,7 @@ COPY hom?.txt /mydir/    # ?可以被任意单个字符所代替
 ```
 在dest中的路径必须是全路径或者是相对于WORKDIR的相对路径。
 
-在使用COPY命令时，需要遵循以下几条规则。
 
-规则1
-
-src指定的路径必须存在于Dockerfile所在目录。例如，下面所给定的路径就是非法路径：
-```json
-ADD ../something /something
-```
-当Dockerfile执行时，Docker Daemon会读取Dockerfile所在目录的所有数据。所以如果COPY命令指定的文件在此目录中不存在，那么Daemon将找不到指定文件。
-
-规则2
-
-如果src指向的是一个目录，那么COPY命令将包括元数据在内的所有数据复制到容器中dest所指定的文件中。但src所指定的目录本身不会被复制进去，只会复制此目录下的文件。
-
-规则3
-
-如果src使用通配符指定了多个文件，那么此时dest必须是一个以“/”结尾的目录。
-
-规则4
-
-如果dest指向的路径没有以“/”结尾，那么这个路径指向的文件将会被src指定的文件覆盖。
-
-规则5
-
-如果dest指向的路径不存在，那么此路径中所涉及的父级目录都将会被创建。
-
-规则6
-
-如果使用STDIN输入Dockerfile内容，那么COPY命令将失效，例如：
-```json
-Docker build - < somefile
-
-```
-此时COPY命令将无法使用。
 
 ### ENTRYPOINT命令
 ```
@@ -605,12 +579,58 @@ ONBUILD RUN /usr/local/bin/python-build --dir /app/src
 [...]
 在ONBUILD命令中不允许嵌套，即ONBUILD ONBUILD是不允许的，同时在ONBUILD命令中也不允许执行FROM和MAINTAINER命令。
 
+## Dockerfile的多阶段构建
+从docker17.05版本开始，dockerfile中允许使用多个FROM指令(multistage),该特性可以使编译环境和发布环境分离。Docker 17.05版本以后，新增了Dockerfile多阶段构建。所谓多阶段构建，实际上是允许一个Dockerfile 中出现多个 FROM 指令。这样做有什么意义呢？
 
+老版本Docker中为什么不支持多个 FROM 指令
 
+Docker的各个层是有相关性的，在联合挂载的过程中，系统需要知道在什么样的基础上再增加新的文件。那么这就要求一个Docker镜像只能有一个起始层，只能有一个根。所以，Dockerfile中，就只允许一个 FROM指令。因为多个 FROM 指令会造成多根，则是无法实现的。但为什么 Docker 17.05 版本以后允许 Dockerfile支持多个 FROM 指令了呢，莫非已经支持了多根？
 
+多个 FROM 指令的意义
+多个 FROM 指令并不是为了生成多根的层关系，最后生成的镜像，仍以最后一条 FROM 为准，之前的 FROM 会被抛弃，那么之前的FROM 又有什么意义呢？
 
+每一条 FROM 指令都是一个构建阶段，多条 FROM 就是多阶段构建，虽然最后生成的镜像只能是最后一个阶段的结果，但是，能够将前置阶段中的文件拷贝到后边的阶段中，这就是多阶段构建的最大意义。
 
+最大的使用场景是将编译环境和运行环境分离，
 
+编译阶段
+```
+FROM golang:1.10.3
+
+COPY server.go /build/
+
+WORKDIR /build
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOARM=6 go build -ldflags ‘-w -s’ -o server
+```
+运行阶段
+```
+FROM scratch
+```
+
+从编译阶段的中拷贝编译结果到当前镜像中
+```
+COPY --from=0 /build/server /
+
+ENTRYPOINT ["/server"]
+```
+这个 Dockerfile 的玄妙之处就在于 COPY 指令的 --from=0 参数，从前边的阶段中拷贝文件到当前阶段中，多个FROM语句时，0代表第一个阶段。除了使用数字，我们还可以给阶段命名，比如：
+```
+## 编译阶段 命名为 builder
+FROM golang:1.10.3 as builder
+
+## 从编译阶段的中拷贝编译结果到当前镜像中
+COPY --from=builder /build/server /
+```
+更为强大的是，COPY --from 不但可以从前置阶段中拷贝，还可以直接从一个已经存在的镜像中拷贝。比如，
+```
+FROM ubuntu:16.04
+
+COPY --from=quay.io/coreos/etcd:v3.3.9 /usr/local/bin/etcd /usr/local/bin/
+```
+我们直接将etcd镜像中的程序拷贝到了我们的镜像中，这样，在生成我们的程序镜像时，就不需要源码编译etcd了，直接将官方编译好的程序文件拿过来就行了。
+
+有些程序要么没有apt源，要么apt源中的版本太老，要么干脆只提供源码需要自己编译，使用这些程序时，我们可以方便地使用已经存在的Docker镜像作为我们的基础镜像。但是我们的软件有时候可能需要依赖多个这种文件，我们并不能同时将 nginx 和 etcd 的镜像同时作为我们的基础镜像（不支持多根），这种情况下，使用 COPY --from 就非常方便实用了。
 
 
 
