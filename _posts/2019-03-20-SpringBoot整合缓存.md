@@ -121,7 +121,7 @@ public Menu findById(String id) {
 在这个例子中，findById 方法与一个名为 menu 的缓存关联起来了。调用该方法时，会检查 menu 缓存，如果缓存中有结果，就不会去执行方法了。
 ### 关联多个缓存名
 其实，按照官方文档，@Cacheable 支持同一个方法关联多个缓存。这种情况下，当执行方法之前，这些关联的每一个缓存都会被检查，而且只要至少其中一个缓存命中了，那么这个缓存中的值就会被返回。示例：
-```java
+```
 @Override
     @Cacheable({"menu", "menuById"})
     public Menu findById(String id) {

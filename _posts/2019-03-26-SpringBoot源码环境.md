@@ -4,7 +4,7 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot源码环境搭建
+# SpringBoot源码环境
 Spring Boot是由Pivotal团队提供的全新框架，其设计目的是用来简化新Spring应用的初始搭建以及开发过程。该框架使用了特定的方式来进行配置，从而使开发人员不再需要定义样板化的配置。
 
 ## Springboot 源码
@@ -72,7 +72,22 @@ Spring Boot的功能从细节到整体都是基于“约定优于配置”开发
 
 Spring Boot框架的设计理念完美遵从了它所属企业的目标，为平台和开发者带来一种全新的体验：整合成熟技术框架、屏蔽系统复杂性、简化已有技术的使用，从而降低软件的使用门槛，提升软件开发和运维的效率。
 
+## SpringBoot源码
+引入SpringBoot依赖版本
+```xml
+<dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>2.5.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
+```
 
 ## 源码调试
 

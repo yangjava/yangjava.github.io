@@ -113,7 +113,7 @@ spec:
 kubectl create -f mysql-svc.yaml
 ```
 运行kubectl命令查看刚刚创建的Service：
-```yaml
+```
 kubectl get svc
 ```
 可以发现，MySQL服务被分配了一个值为x.x.x.x的Cluster IP地址。随后，Kubernetes集群中其他新创建的Pod就可以通过Service的Cluster IP+端口号3306来连接和访问它了。
@@ -181,12 +181,17 @@ metadata:
   labels:
     app: myapp
 spec:
-  # These containers are run during pod initialization
-  jnitContainers:
-  -name: init-mydb
-   image: busybox
-   command:
-   -xxx
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', "until nslookup myservice.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for myservice; sleep 2; done"]
+  - name: init-mydb
+    image: busybox:1.28
+    command: ['sh', '-c', "until nslookup mydb.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for mydb; sleep 2; done"]
 ```
 在Kubernetes 1.8中，资源对象中的很多Alpha、Beta版本的Annotations被取消，升级成了常规定义方式，在学习Kubernetes的过程中需要特别注意。
 
@@ -246,9 +251,9 @@ metadata:
 spec:
   containers:
   - name: myweb
-  image: kubeguide/tomcat-app: v1
-  ports:
-  - containerPort: 8080
+    image: kubeguide/tomcat-app:v1
+    ports:
+      - containerPort: 8080
 ```
 Kind为Pod表明这是一个Pod的定义，metadata里的name属性为Pod的名称，在metadata里还能定义资源对象的标签，这里声明myweb拥有一个name=myweb的标签。在Pod里所包含的容器组的定义则在spec一节中声明，这里定义了一个名为myweb、对应镜像为kubeguide/tomcat-app:v1的容器，该容器注入了名为MYSQL_SERVICE_HOST='mysql'和MYSQL_SERVICE_PORT='3306'的环境变量（env关键字），并且在8080端口（containerPort）启动容器进程。Pod的IP加上这里的容器端口（containerPort），组成了一个新的概念—Endpoint，它代表此Pod里的一个服务进程的对外通信地址。一个Pod也存在具有多个Endpoint的情况，比如当我们把Tomcat定义为一个Pod时，可以对外暴露管理端口与服务端口这两个Endpoint。
 
@@ -310,6 +315,7 @@ metadata:
   name: myweb
   lables: 
     app: myweb
+---   
 # 管理对象RC和Service 在 spec 中定义Selector 与 Pod 进行关联。
 apiVersion: v1
 kind: ReplicationController
@@ -320,8 +326,9 @@ spec:
   selector:
     app: myweb
   template:
-  ...略...
-apiVersion" v1
+    xxx: xxxx
+---  
+apiVersion": v1
 kind: Service
 metadata: 
   name: myweb
@@ -447,10 +454,15 @@ Deployment的典型使用场景有以下几个。
 
 除了API声明与Kind类型等有所区别，Deployment的定义与Replica Set的定义很类似：
 ```yaml
-apiversion: extensions/vlbetal       apiversion: v1
-kind: Deployment                     kind: ReplicaSet
-metadata:                            metadata:
-  name: nginx-deployment               name: nginx-repset
+apiversion: extensions/vlbetal      
+kind: Deployment                     
+metadata:                            
+  name: nginx-deployment               
+--- 
+apiversion: v1
+kind: ReplicaSet
+metadata:
+  name: nginx-repset
 ```
 下面通过运行一些例子来直观地感受Deployment的概念。创建一个名为tomcat-deployment.yaml的Deployment描述文件，内容如下：
 ```yaml
@@ -595,9 +607,9 @@ metadata:
 spec:
   ports:
   - port: 8080
-   name: service-port
+    name: service-port
   - port: 8005
-   name: shutdown-port
+    name: shutdown-port
   selector:
     tier: frontend
 ```

@@ -24,6 +24,14 @@ Prometheus专注于现在正在发生的事情，而不是追踪数周或数月�
 
 Prometheus由开源编程语言Go编写，并且是在Apache 2.0许可证下授权的。它孵化于云原生计算基金会（Cloud Native Computing Foundation）
 
+## 特性
+- 通过指标名称和标签(key/value对）区分的多维度、时间序列数据模型
+- 灵活的查询语法 PromQL
+- 不需要依赖额外的存储，一个服务节点就可以工作
+- 利用http协议，通过pull模式来收集时间序列数据
+- 需要push模式的应用可以通过中间件gateway来实现
+- 监控目标支持服务发现和静态配置
+- 支持各种各样的图表和监控面板组件
 
 ## Prometheus架构
 Prometheus通过抓取或拉取应用程序中暴露的时间序列数据来工作。时间序列数据通常由应用程序本身通过客户端库或称为exporter（导出器）的代理来作为HTTP端点暴露。目前已经存在很多exporter和客户端库，支持多种编程语言、框架和开源应用程序，如Apache Web服务器和MySQL数据库等。
@@ -78,11 +86,11 @@ Prometheus收集时间序列数据。为了处理这些数据，它使用一个�
 - 样本值（value）： 一个 folat64 的浮点型数据表示当前样本的值。
 
 表示方式：通过如下表达方式表示指定指标名称和指定标签集合的时间序列：
-```shell
+```
 <metric name>{<label name>=<label value>, ...}
 ```
 例如，指标名称为api_http_requests_total，标签为 method="POST" 和 handler="/messages" 的时间序列可以表示为：
-```shell
+```
 api_http_requests_total{method="POST", handler="/messages"}
 ```
 首先是时间序列名称，后面跟着一组键/值对标签。通常所有时间序列都有一个instance标签（标识源主机或应用程序）以及一个job标签（包含抓取特定时间序列的作业名称）。
@@ -103,96 +111,45 @@ Prometheus项目还包括一系列exporter，用于监控应用程序和服务�
 
 Prometheus还发布了一系列客户端库，支持监控由多种语言编写的应用程序和服务。它们包括主流编程语言，如Python、Ruby、Go和Java。其他客户端库也可以从开源社区获取。
 
+## 核心组件
+整个Prometheus生态包含多个组件，除了Prometheus server组件其余都是可选的
+- Prometheus Server：主要的核心组件，用来收集和存储时间序列数据。
+- Client Library:：客户端库，为需要监控的服务生成相应的 metrics 并暴露给 Prometheus server。当 Prometheus server 来 pull 时，直接返回实时状态的 metrics。
+- push gateway：主要用于短期的 jobs。由于这类 jobs 存在时间较短，可能在 Prometheus 来 pull 之前就消失了。为此，这次 jobs 可以直接向 Prometheus server 端推送它们的 metrics。这种方式主要用于服务层面的 metrics，对于机器层面的 metrices，需要使用 node exporter。
+- Exporters: 用于暴露已有的第三方服务的 metrics 给 Prometheus。
+- Alertmanager: 从 Prometheus server 端接收到 alerts 后，会进行去除重复数据，分组，并路由到对收的接受方式，发出报警。常见的接收方式有：电子邮件，pagerduty，OpsGenie, webhook 等。
+- 各种支持工具。
 
 
+## Prometheus 框架图
+Prometheus 的主要模块包含:Server, Exporters, Pushgateway, PromQL, Alertmanager, WebUI 等。我们逐一认识一下各个模块的功能作用。
 
+模块介绍
+- Retrieval是负责定时去暴露的目标页面上去抓取采样指标数据。
+- Storage 是负责将采样数据写入指定的时序数据库存储。
+- PromQL 是Prometheus提供的查询语言模块。可以和一些webui比如grfana集成。
+- Jobs / Exporters:Prometheus 可以从 Jobs 或 Exporters 中拉取监控数据。Exporter 以 Web API 的形式对外暴露数据采集接口。
+- Prometheus Server:Prometheus 还可以从其他的 Prometheus Server 中拉取数据。
+- Pushgateway:对于一些以临时性 Job 运行的组件，Prometheus 可能还没有来得及从中 pull 监控数据的情况下，这些 Job 已经结束了，Job 运行时可以在运行时将监控数据推送到 Pushgateway 中，Prometheus 从 Pushgateway 中拉取数据，防止监控数据丢失。
+- Service discovery:是指 Prometheus 可以动态的发现一些服务，拉取数据进行监控，如从DNS，Kubernetes，Consul 中发现, file_sd 是静态配置的文件。
+- AlertManager:是一个独立于 Prometheus 的外部组件，用于监控系统的告警，通过配置文件可以配置一些告警规则，Prometheus 会把告警推送到 AlertManager。
 
+## 工作流程
+大概的工作流程如下：
+- Prometheus server 定期从配置好的 jobs 或者 exporters 中拉 metrics，或者接收来自 Pushgateway 发过来的 metrics，或者从其他的 Prometheus server 中拉 metrics。
+- Prometheus server 在本地存储收集到的 metrics，并运行已定义好的 alert.rules，记录新的时间序列或者向 Alertmanager 推送警报。
+- Alertmanager 根据配置文件，对接收到的警报进行处理，发出告警。
+- 在图形界面中，可视化采集数据。
 
+## Prometheus相关概念
 
+### 内部存储机制
+Prometheus有着非常高效的时间序列数据存储方法，每个采样数据仅仅占用3.5byte左右空间，上百万条时间序列，30秒间隔，保留60天，大概花了200多G（引用官方PPT）。
 
-
-
-
-
-
-
-
-
-
-
-
-
-参考链接
-·Prometheus官网：https://prometheus.io/。
-
-·Prometheus文档：https://prometheus.io/docs/。
-
-·Prometheus GitHub主页：https://github.com/prometheus/。
-
-·Prometheus GitHub源码：https://github.com/prometheus/prometheus。
-
-·Prometheus参考视频：大规模Prometheus和时间序列设计（https://www.youtube.com/watch?v=gNmWzkGViAY）。
-
-·Grafana官网：https://grafana.com/。
-------------------------------------------------
-# Prometheus简介
-Prometheus是由SoundCloud开发的开源监控报警系统和时序列数据库(TSDB)。
-**Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud. Since its inception in 2012, many companies and organizations have adopted Prometheus, and the project has a very active developer and user community. It is now a standalone open source project and maintained independently of any company. To emphasize this, and to clarify the project's governance structure, Prometheus joined the Cloud Native Computing Foundation in 2016 as the second hosted project, after Kubernetes.**
-
-### **什么是Prometheus？**
-
-Prometheus是一个开源监控系统，它前身是SoundCloud的警告工具包。从2012年开始，许多公司和组织开始使用Prometheus。该项目的开发人员和用户社区非常活跃，越来越多的开发人员和用户参与到该项目中。目前它是一个独立的开源项目，且不依赖与任何公司。为了强调这点和明确该项目治理结构，Prometheus在2016年继Kurberntes之后，加入了Cloud Native Computing Foundation。
-
-Prometheus是由SoundCloud开发的开源监控报警系统和时序列数据库(TSDB)。Prometheus使用Go语言开发，是Google BorgMon监控系统的开源版本。
-2016年由Google发起Linux基金会旗下的原生云基金会(Cloud Native Computing Foundation), 将Prometheus纳入其下第二大开源项目。
-Prometheus目前在开源社区相当活跃。
-Prometheus和Heapster(Heapster是K8S的一个子项目，用于获取集群的性能数据。相比功能更完善、更全面。Prometheus性能也足够支撑上万台规模的集群。
-
-### 特点
-
-1）多维度数据模型
-
-每一个时间序列数据都由metric度量指标名称和它的标签labels键值对集合唯一确定：这个metric度量指标名称指定监控目标系统的测量特征（如：http_requests_total- 接收http请求的总计数）。
-
-labels开启了Prometheus的多维数据模型：对于相同的度量名称，通过不同标签列表的结合, 会形成特定的度量维度实例。(例如：所有包含度量名称为/api/tracks的http请求，打上method=POST的标签，则形成了具体的http请求)。这个查询语言在这些度量和标签列表的基础上进行过滤和聚合。改变任何度量上的任何标签值，则会形成新的时间序列图。
-
-2）灵活的查询语言（PromQL）：可以对采集的metrics指标进行加法，乘法，连接等操作；
-
-3）可以直接在本地部署，不依赖其他分布式存储；
-
-4）通过基于HTTP的pull方式采集时序数据；
-
-5）可以通过中间网关pushgateway的方式把时间序列数据推送到prometheus server端；
-
-6）可通过服务发现或者静态配置来发现目标服务对象（targets）。
-
-7）有多种可视化图像界面，如Grafana等。
-
-8）高效的存储，每个采样数据占3.5 bytes左右，300万的时间序列，30s间隔，保留60天，消耗磁盘大概200G。
-
-9）做高可用，可以对数据做异地备份，联邦集群，部署多套prometheus，pushgateway上报数据
-
-### 组件
-
-1）`Prometheus Server`: 用于收集和存储时间序列数据。
-
-2）`Client Library`: 客户端库，检测应用程序代码，当Prometheus抓取实例的HTTP端点时，客户端库会将所有跟踪的metrics指标的当前状态发送到prometheus server端。
-
-3）`Exporters`: prometheus支持多种exporter，通过exporter可以采集metrics数据，然后发送到prometheus server端，所有向promtheus server提供监控数据的程序都可以被称为exporter
-
-4）`Alertmanager`: 从 Prometheus server 端接收到 alerts 后，会进行去重，分组，并路由到相应的接收方，发出报警，常见的接收方式有：电子邮件，微信，钉钉, slack等。
-
-5）`Grafana`：监控仪表盘，可视化监控数据
-
-6）`pushgateway`: 各个目标主机可上报数据到pushgateway，然后prometheus server统一从pushgateway拉取数据。
-
-### **适用场景**
-
-Prometheus在记录纯数字时间序列方面表现非常好。它既适用于面向服务器等硬件指标的监控，也适用于高动态的面向服务架构的监控。对于现在流行的微服务，Prometheus的多维度数据收集和数据筛选查询语言也是非常的强大。Prometheus是为服务的可靠性而设计的，当服务出现故障时，它可以使你快速定位和诊断问题。它的搭建过程对硬件和服务没有很强的依赖关系。
-
-Prometheus，它的价值在于可靠性，甚至在很恶劣的环境下，你都可以随时访问它和查看系统服务各种指标的统计信息。 如果你对统计数据需要100%的精确，它并不适用，例如：它**不适用于实时计费系统**。
-
-
+Prometheus内部主要分为三大块：
+- Retrieval是负责定时去暴露的目标页面上去抓取采样指标数据
+- Storage是负责将采样数据写磁盘
+- PromQL是Prometheus提供的查询语言模块。
 
 ### 什么是样本
 
@@ -213,3 +170,116 @@ Prometheus，它的价值在于可靠性，甚至在很恶劣的环境下，你�
 ```
 api_http_requests_total{method="POST", handler="/messages"}
 ```
+
+### 数据模型
+Prometheus 存储的所有数据都是时间序列数据（Time Serie Data，简称时序数据）。时序数据是具有时间戳的数据流，该数据流属于某个度量指标（Metric）和该度量指标下的多个标签（Label）。
+
+每个Metric name代表了一类的指标，他们可以携带不同的Labels，每个Metric name + Label组合成代表了一条时间序列的数据。
+
+在Prometheus的世界里面，所有的数值都是64bit的。每条时间序列里面记录的其实就是64bit timestamp(时间戳) + 64bit value(采样值)。
+
+- Metric name（指标名称）：该名字应该具有语义，一般用于表示 metric 的功能，例如：http_requests_total, 表示 http 请求的总数。其中，metric 名字由 ASCII 字符，数字，下划线，以及冒号组成，且必须满足正则表达式 [a-zA-Z_:][a-zA-Z0-9_:]*。
+- Lables（标签）：使同一个时间序列有了不同维度的识别。例如 http_requests_total{method=“Get”} 表示所有 http 请求中的 Get 请求。当 method=“post” 时，则为新的一个 metric。标签中的键由 ASCII 字符，数字，以及下划线组成，且必须满足正则表达式 [a-zA-Z_:][a-zA-Z0-9_:]*。
+- timestamp(时间戳)：数据点的时间，表示数据记录的时间。
+- Sample Value（采样值）：实际的时间序列，每个序列包括一个 float64 的值和一个毫秒级的时间戳。
+
+例如数据：
+```
+http_requests_total{status="200",method="GET"}
+http_requests_total{status="404",method="GET"}
+```
+根据上面的分析，时间序列的存储似乎可以设计成key-value存储的方式（基于BigTable）。
+
+现在Prometheus内部的表现形式了，__name__是特定的label标签，代表了metric name。
+
+## Metric类型
+Prometheus定义了4种不同的指标类型(metric type)：Counter（计数器）、Gauge（仪表盘）、Histogram（直方图）、Summary（摘要）
+
+### Counter（计数器）
+一种累加的 metric，典型的应用如：请求的个数，结束的任务数， 出现的错误数等等。
+【例如】查询 http_requests_total{method=“get”, job=“Prometheus”, handler=“query”} 返回 8，10 秒后，再次查询，则返回 14。
+
+### Gauge（仪表盘）
+数据是一个瞬时值，如果当前内存用量，它随着时间变化忽高忽低。
+【例如】go_goroutines{instance=“172.17.0.2”, job=“Prometheus”} 返回值 147，10 秒后返回 124。
+
+### Histogram（直方图）
+Histogram 取样观测的结果（一般是请求持续时间或响应大小）并在一个可配置的分布区间（bucket）内计算这些结果。其也提供所有观测结果的总和。
+Histogram 有一个基本 metric名称 <basename>，在一次抓取中展现多个时间序列：
+累加的 counter，代表观测区间：<basename>_bucket{le=""}
+所有观测值的总数：<basename>_sum
+观测到的事件数量：<basenmae>_count
+例如 Prometheus server 中prometheus_local_storage_series_chunks_persisted, 表示 Prometheus 中每个时序需要存储的 chunks 数量，我们可以用它计算待持久化的数据的分位数。
+
+### Summary（摘要）
+和 histogram 相似，summary 取样观测的结果（一般是请求持续时间或响应大小）。但是它还提供观测的次数和所有值的总和，它通过一个滑动的时间窗口计算可配置的分位数。
+Summary 有一个基本的 metric名称 <basename>，在一次抓取中展现多个时间序列：
+观测事件的流式φ-分位数（0 ≤ φ ≤ 1）：{quantile=“φ”}
+所有观测值的总和：<basename>_sum
+观测的事件数量：<basename>_count
+例如 Prometheus server 中 prometheus_target_interval_length_seconds。
+
+## 任务（JOBS）与实例（INSTANCES）
+用Prometheus术语来说，可以抓取的端点称为instance，通常对应于单个进程。
+具有相同目的的instances 的集合（例如，出于可伸缩性或可靠性而复制的过程）称为job。
+
+例如，一个具有四个复制实例的API服务器作业:
+```
+job: api-server
+    instance 1: 1.2.3.4:5670
+    instance 2: 1.2.3.4:5671
+    instance 3: 5.6.7.8:5670
+    instance 4: 5.6.7.8:5671
+```
+- instance: 一个单独 scrape 的目标， 一般对应于一个进程。:
+- jobs: 一组同种类型的 instances（主要用于保证可扩展性和可靠性）
+
+## Node exporter
+Node exporter 主要用于暴露 metrics 给 Prometheus，其中 metrics 包括：cpu 的负载，内存的使用情况，网络等。
+
+## Pushgateway
+Pushgateway 是 Prometheus 生态中一个重要工具，使用它的原因主要是：
+
+Prometheus 采用 pull 模式，可能由于不在一个子网或者防火墙原因，导致Prometheus 无法直接拉取各个 target数据。
+在监控业务数据的时候，需要将不同数据汇总, 由 Prometheus 统一收集。
+由于以上原因，不得不使用 pushgateway，但在使用之前，有必要了解一下它的一些弊端：
+
+将多个节点数据汇总到 pushgateway, 如果 pushgateway 挂了，受影响比多个 target 大。
+Prometheus 拉取状态 up 只针对 pushgateway, 无法做到对每个节点有效。
+Pushgateway 可以持久化推送给它的所有监控数据。因此，即使你的监控已经下线，prometheus 还会拉取到旧的监控数据，需要手动清理 pushgateway 不要的数据。
+
+## TSDB简介
+TSDB(Time Series Database)时序列数据库，我们可以简单的理解为一个优化后用来处理时间序列数据的软件，并且数据中的数组是由时间进行索引的。
+
+### 时间序列数据库的特点
+大部分时间都是写入操作。
+写入操作几乎是顺序添加，大多数时候数据到达后都以时间排序。
+写操作很少写入很久之前的数据，也很少更新数据。大多数情况在数据被采集到数秒或者数分钟后就会被写入数据库。
+删除操作一般为区块删除，选定开始的历史时间并指定后续的区块。很少单独删除某个时间或者分开的随机时间的数据。
+基本数据大，一般超过内存大小。一般选取的只是其一小部分且没有规律，缓存几乎不起任何作用。
+读操作是十分典型的升序或者降序的顺序读。
+高并发的读操作十分常见。
+
+### 常见的时间序列数据库
+- influxDB	https://influxdata.com/
+- RRDtool	http://oss.oetiker.ch/rrdtool/
+- Graphite	http://graphiteapp.org/
+- OpenTSDB	http://opentsdb.net/
+- Kdb+	http://kx.com/
+- Druid	http://druid.io/
+- KairosDB	http://kairosdb.github.io/
+- Prometheus	https://prometheus.io/
+
+# 参考链接
+Prometheus官网：https://prometheus.io/。
+
+Prometheus文档：https://prometheus.io/docs/。
+
+Prometheus GitHub主页：https://github.com/prometheus/。
+
+Prometheus GitHub源码：https://github.com/prometheus/prometheus。
+
+Prometheus参考视频：大规模Prometheus和时间序列设计（https://www.youtube.com/watch?v=gNmWzkGViAY）。
+
+Grafana官网：https://grafana.com/。
+

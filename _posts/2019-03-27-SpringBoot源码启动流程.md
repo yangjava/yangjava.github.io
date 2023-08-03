@@ -4,13 +4,14 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot 启动流程
+# SpringBoot启动流程
 从源代码的角度来看看Spring Boot的启动过程到底是怎么样的
 
 
-## 运行 SpringApplication.run() 方法
+## 启动SpringBoot启动类
+运行 SpringApplication.run() 方法
 
-```
+```java
 @SpringBootApplication
 public class Application {
 
@@ -20,7 +21,8 @@ public class Application {
     
 }
 ```
-进入源码**SpringApplication.run(HelloWorldMainApplication.class, args);**
+
+进入源码**SpringApplication.run(Application.class, args);**
 
 ```java
 	/**

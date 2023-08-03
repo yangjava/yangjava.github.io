@@ -67,13 +67,13 @@ kube-apiserver 支持同时提供 https（默认监听在 6443 端口）和 http
 
 在实际使用中，通常通过 kubectl 来访问 apiserver，也可以通过 Kubernetes 各个语言的 client 库来访问 apiserver。在使用 kubectl 时，打开调试日志也可以看到每个 API 调用的格式，比如
 
-```shell
+```
 kubectl --v=8 get pods
 ```
 
 可通过 `kubectl api-versions` 和 `kubectl api-resources` 查询 Kubernetes API 支持的 API 版本以及资源对象。
 ```shell
- kubectl api-versions
+kubectl api-versions
 admissionregistration.k8s.io/v1
 admissionregistration.k8s.io/v1beta1
 apiextensions.k8s.io/v1
