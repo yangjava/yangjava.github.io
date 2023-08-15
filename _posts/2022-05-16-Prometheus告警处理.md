@@ -1,12 +1,132 @@
 ---
 layout: post
-categories: Prometheus
+categories: [Prometheus]
 description: none
 keywords: Prometheus
 ---
 # Prometheus告警处理
 Prometheus只负责进行报警计算，而具体的报警触发则由AlertManager完成。
 
+## 功能概述
+开始阅读 Alertmanager 的源码之前，你至少需要了解以下几点：
+- Alertmanager是Prometheus的一个组件；
+- Alertmanager的输入是来自 Prometheus Server产生的告警；
+- 输入的告警会经过分组、抑制、静默、延时、去重等步骤的处理；
+- Alertmanager的输出是将告警发送出去（邮件、企业微信、WebHook等方式）；
+
+## 框架结构
+在阅读源码前，如果有该项目的结构图，也可以先大概了解下整体的数据流走向，方便后续的代码阅读。
+
+源码地址：https://github.com/prometheus/alertmanager
+
+在Alertmanager的源码 doc目录有一张 Alertmanager的框架图arch.svg，在该框架图我们可以大概了解下数据的走向。
+![Alertmanager的框架图](https://github.com/prometheus/alertmanager/blob/main/doc/arch.svg)
+
+- 通过API组件接收告警，并存储至ALert Provider；
+- Dispatcher 从Provider 通过Subscribe 获取告警的数据；
+- Dispatcher 对告警的数据进行分组后，将每个告警存储至对应的Group中；
+- Pipeline处理每个分组中的告警，经过集群处理、抑制、静默、路由、等待、去重、发送等步骤。
+
+## 配置文件
+配置文件是能够理解一个项目的功能最直观的体现。有哪些功能，都在配置文件每个配置项中基本上都可以体现出来。但是对于复杂、配置项非常多的配置文件，也是需要学习成本的。在阅读Alertmanager源码之前如果已经对其配置文件比较熟悉了，那也会给阅读源码带来一定的帮助。
+
+我们可以看一个简单的Alertmanager配置样例：
+```yaml
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.163.com:25'
+  smtp_from: 'xxx@163.com'
+  smtp_auth_username: 'xxx@163.com'
+  smtp_auth_password: xxxxx
+  smtp_hello: '163.com'
+  smtp_require_tls: false
+
+receivers:
+- name: wechat
+  webhook_configs:
+  - send_resolved: true
+    url: https://qiyeweixin.example.cn/alert
+- name: email
+  email_configs:
+  - send_resolved: true
+    to: xxxx@163.com
+
+route:
+  group_by: ['name']
+  group_interval: 2m
+  group_wait: 2m
+  receiver: wechat
+  repeat_interval: 5m
+  routes: 
+   - match:
+       severity: critical
+     receiver: email
+inhibit_rules:
+  - source_match:
+      severity: Critical
+    target_match:
+      severity: Warning
+    equal: ['class']
+```
+以上配置中可以读取到以下信息：
+
+配置了两个告警的接收者，wechat、email；
+
+告警级别为严重级别（包含一组label serverity=critical）的告警将通过email发送，其他的告警通过wechat发送；
+
+所有的告警以labe的key为name分组，即name的值相等的告警会在一组告警中一起发送；
+
+相同类别（class属性相等）的严重级别的告警（serverity=critical）抑制一般级别的告警（serverity=warning）
+
+## 代码框架
+到这里，借助结构图，配置文件就对Alertmanager的功能有着大体的一个印象了，但是细节可能还不太清楚。接下来我们可以通过阅读代码来理解每个功能的实现，从而了解每个细节。
+
+在阅读代码前，不妨先看看整个代码的目录有哪些。而且一眼看去对一些目录（包）中是做什么逻辑处理的也有个大概的认识。
+
+## 代码脉络
+接下来第一遍阅读代码，可以对整体的代码脉络，也就是数据流向进行一个认识，在把每个脉络串起来后再去读每个功能源码的细节。
+
+接下来我们将从配置、API、provider、dispatch、分组、pipeline、抑制、延时、静默这些功能串起来。
+
+### 配置
+
+首先我会关注配置文件的解析，直接进入config目录找到配置文件的结构对应的struct：
+```
+// Config is the top-level configuration for Alertmanager's config files.
+type Config struct {
+	Global       *GlobalConfig `yaml:"global,omitempty" json:"global,omitempty"`
+	Route        *Route        `yaml:"route,omitempty" json:"route,omitempty"`
+	InhibitRules []InhibitRule `yaml:"inhibit_rules,omitempty" json:"inhibit_rules,omitempty"`
+	Receivers    []Receiver    `yaml:"receivers,omitempty" json:"receivers,omitempty"`
+	Templates    []string      `yaml:"templates" json:"templates"`
+	// Deprecated. Remove before v1.0 release.
+	MuteTimeIntervals []MuteTimeInterval `yaml:"mute_time_intervals,omitempty" json:"mute_time_intervals,omitempty"`
+	TimeIntervals     []TimeInterval     `yaml:"time_intervals,omitempty" json:"time_intervals,omitempty"`
+
+	// original is the input from which the config was parsed.
+	original string
+}
+```
+可以看到与配置文件中的yaml结构是完全对应的。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------
 ## 简单的报警规则
 ```yaml
 rules:

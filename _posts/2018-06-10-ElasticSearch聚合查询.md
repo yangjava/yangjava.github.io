@@ -4,222 +4,202 @@ categories: ElasticSearch
 description: none
 keywords: ElasticSearch
 ---
+# ElasticSearch
+在使用es时，我们经常会用到聚合查询。
 
-ElasticSearch AggregationBuilders java api常用聚会查询
-以球员信息为例，player索引的player type包含5个字段，姓名，年龄，薪水，球队，场上位置。
-index的mapping为：
+## 聚合概念
+聚合（aggs）不同于普通查询，是目前学到的第二种大的查询分类，第一种即“query”，因此在代码中的第一层嵌套由“query”变为了“aggs”。用于进行聚合的字段必须是exact value，分词字段不可进行聚合，对于text字段如果需要使用聚合，需要开启fielddata，但是通常不建议，因为fielddata是将聚合使用的数据结构由磁盘（docvalues）变为了堆内存（fielddata），大数据的聚合操作很容易导致OOM
 
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-"mappings": {
-"player": {
-"properties": {
-"name": {
-"index": "not_analyzed",
-"type": "string"
-},
-"age": {
-"type": "integer"
-},
-"salary": {
-"type": "integer"
-},
-"team": {
-"index": "not_analyzed",
-"type": "string"
-},
-"position": {
-"index": "not_analyzed",
-"type": "string"
+聚合分类
+- 分桶聚合（Bucket agregations）
+类比SQL中的group by的作用，主要用于统计不同类型数据的数量
+- 指标聚合（Metrics agregations）
+主要用于最大值、最小值、平均值、字段之和等指标的统计
+- 管道聚合（Pipeline agregations）
+用于对聚合的结果进行二次聚合，如要统计绑定数量最多的标签bucket，就是要先按照标签进行分桶，再在分桶的结果上计算最大值。
+
+语法
+```
+json GET product/_search 
+{
+    "aggs": {
+        "<aggs_name>": {
+            "<agg_type>": {
+                "field": "<field_name>"
+            }
+        }
+    }
 }
-},
-"_all": {
-"enabled": false
+```
+- aggs_name：聚合函数的名称
+- agg_type：聚合种类，比如是桶聚合（terms）或者是指标聚合（avg、sum、min、max等）
+- field_name：字段名称或者叫域名。
+
+### 桶聚合：
+场景：用于统计不同种类的文档的数量，可进行嵌套统计。
+
+函数：terms
+
+注意：聚合字段必须是exact value，如keyword
+
+### 指标聚合
+场景：用于统计某个指标，如最大值、最小值、平均值，可以结合桶聚合一起使用，如按照商品类型分桶，统计每个桶的平均价格。
+
+函数：平均值：Avg、最大值：Max、最小值：Min、求和：Sum、详细信息：Stats、数量：Value count
+
+### 管道聚合
+场景：用于对聚合查询的二次聚合，如统计平均价格最低的商品分类，即先按照商品分类进行桶聚合，并计算其平均价格，然后对其平均价格计算最小值聚合
+
+函数：Min bucket：最小桶、Max bucket：最大桶、Avg bucket：桶平均值、Sum bucket：桶求和、Stats bucket：桶信息
+
+注意：bucketspath为管道聚合的关键字，其值从当前聚合统计的聚合函数开始计算为第一级。比如下面例子中，myaggs和myminbucket同级， myaggs就是bucketspath值的起始值。
+
+```
+json GET product/_search 
+{
+    "size": 0,
+    "aggs": {
+        "my_aggs": {
+            "terms": {
+                ...
+            },
+            "aggs": {
+                "my_price_bucket": {
+                    ...
+                }
+            }
+        },
+        "my_min_bucket": {
+            "min_bucket": {
+                "buckets_path": "my_aggs>price_bucket"
+            }
+        }
+    }
 }
+```
+
+### 嵌套聚合
+语法：
+```
+json GET product/_search 
+{
+    "size": 0,
+    "aggs": {
+        "<agg_name>": {
+            "<agg_type>": {
+                "field": "<field_name>"
+            },
+            "aggs": {
+                "<agg_name_child>": {
+                    "<agg_type>": {
+                        "field": "<field_name>"
+                    }
+                }
+            }
+        }
+    }
 }
+```
+用途：用于在某种聚合的计算结果之上再次聚合，如统计不同类型商品的平均价格，就是在按照商品类型桶聚合之后，在其结果之上计算平均价格
+
+## 聚合和查询的相互关系
+
+### 基于query或filter的聚合
+```
+json GET product/_search 
+{
+    "query": {
+        ...
+    },
+    "aggs": {
+        ...
+    }
 }
-　　
+```
+注意：以上语法，执行顺序为先query后aggs，顺序和谁在上谁在下没有关系。query中可以是查询、也可以是filter、或者bool query
 
-
-索引中的全部数据：
-
-
-微信截图_20160920171030.png
-
-
-首先，初始化Builder：
-
-1
-SearchRequestBuilder sbuilder = client.prepareSearch("player").setTypes("player");
-　　
-
-接下来举例说明各种聚合操作的实现方法，因为在es的api中，多字段上的聚合操作需要用到子聚合(subAggregation)，初学者可能找不到方法（网上资料比较少，笔者在这个问题上折腾了两天，最后度了源码才彻底搞清楚T_T），后边会特意说明多字段聚合的实现方法。另外，聚合后的排序也会单独说明。
-
-group by/count
-例如要计算每个球队的球员数，如果使用SQL语句，应表达如下：
-
-select team, count(*) as player_count from player group by team;
-ES的java api：
-
-1
-2
-3
-TermsBuilder teamAgg= AggregationBuilders.terms("player_count ").field("team");
-sbuilder.addAggregation(teamAgg);
-SearchResponse response = sbuilder.execute().actionGet();
-　　
-
- 
-
-group by多个field
-例如要计算每个球队每个位置的球员数，如果使用SQL语句，应表达如下：
-
-select team, position, count(*) as pos_count from player group by team, position;
-ES的java api：
-
-1
-2
-3
-4
-TermsBuilder teamAgg= AggregationBuilders.terms("player_count ").field("team");
-TermsBuilder posAgg= AggregationBuilders.terms("pos_count").field("position");
-sbuilder.addAggregation(teamAgg.subAggregation(posAgg));
-SearchResponse response = sbuilder.execute().actionGet();
-　　
-
- 
-
-max/min/sum/avg
-例如要计算每个球队年龄最大/最小/总/平均的球员年龄，如果使用SQL语句，应表达如下：
-
-select team, max(age) as max_age from player group by team;
-ES的java api：
-
-1
-2
-3
-4
-TermsBuilder teamAgg= AggregationBuilders.terms("player_count ").field("team");
-MaxBuilder ageAgg= AggregationBuilders.max("max_age").field("age");
-sbuilder.addAggregation(teamAgg.subAggregation(ageAgg));
-SearchResponse response = sbuilder.execute().actionGet();
-　　
-
- 
-
-对多个field求max/min/sum/avg
-例如要计算每个球队球员的平均年龄，同时又要计算总年薪，如果使用SQL语句，应表达如下：
-
-select team, avg(age)as avg_age, sum(salary) as total_salary from player group by team;
-ES的java api：
-
-1
-2
-3
-4
-5
-6
-TermsBuilder teamAgg= AggregationBuilders.terms("team");
-AvgBuilder ageAgg= AggregationBuilders.avg("avg_age").field("age");
-SumBuilder salaryAgg= AggregationBuilders.avg("total_salary ").field("salary");
-sbuilder.addAggregation(teamAgg.subAggregation(ageAgg).subAggregation(salaryAgg));
-SearchResponse response = sbuilder.execute().actionGet();
-　　
-
-聚合后对Aggregation结果排序
-例如要计算每个球队总年薪，并按照总年薪倒序排列，如果使用SQL语句，应表达如下：
-
-select team, sum(salary) as total_salary from player group by team order by total_salary desc;
-ES的java api：
-
-1
-2
-3
-4
-TermsBuilder teamAgg= AggregationBuilders.terms("team").order(Order.aggregation("total_salary ", false);
-SumBuilder salaryAgg= AggregationBuilders.avg("total_salary ").field("salary");
-sbuilder.addAggregation(teamAgg.subAggregation(salaryAgg));
-SearchResponse response = sbuilder.execute().actionGet();
-　　
-
-需要特别注意的是，排序是在TermAggregation处执行的，Order.aggregation函数的第一个参数是aggregation的名字，第二个参数是boolean型，true表示正序，false表示倒序。
-
-Aggregation结果条数的问题
-默认情况下，search执行后，仅返回10条聚合结果，如果想反悔更多的结果，需要在构建TermsBuilder 时指定size：
-
-TermsBuilder teamAgg= AggregationBuilders.terms("team").size(15);
-
-
-Aggregation结果的解析/输出
-得到response后：
-
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-Map<String, Aggregation> aggMap = response.getAggregations().asMap();
-StringTerms teamAgg= (StringTerms) aggMap.get("keywordAgg");
-Iterator<Bucket> teamBucketIt = teamAgg.getBuckets().iterator();
-while (teamBucketIt .hasNext()) {
-Bucket buck = teamBucketIt .next();
-//球队名
-String team = buck.getKey();
-//记录数
-long count = buck.getDocCount();
-//得到所有子聚合
-Map subaggmap = buck.getAggregations().asMap();
-//avg值获取方法
-double avg_age= ((InternalAvg) subaggmap.get("avg_age")).getValue();
-//sum值获取方法
-double total_salary = ((InternalSum) subaggmap.get("total_salary")).getValue();
-//...
-//max/min以此类推
+### 基于聚合结果的查询
+```
+GET product/_search 
+{
+    "aggs": {
+        ...
+    },
+    "post_filter": {
+        ...
+    }
 }
-　　
+```
+注意：以上语法，执行顺序为先aggs后post_filter，顺序和谁在上谁在下没有关系。
 
- 
+### 查询条件的作用域
+```
+json GET product/_search 
+{
+    "size": 10,
+    "query": {
+        ...
+    },
+    "aggs": {
+        "avg_price": {
+            ...
+        },
+        "all_avg_price": {
+            "global": {
+                
+            },
+            "aggs": {
+                ...
+            }
+        }
+    }
+}
+```
+上面例子中，avgprice的计算结果是基于query的查询结果的，而allavg_price的聚合是基于all data的
 
-总结
-综上，聚合操作主要是调用了SearchRequestBuilder的addAggregation方法，通常是传入一个TermsBuilder，子聚合调用TermsBuilder的subAggregation方法，可以添加的子聚合有TermsBuilder、SumBuilder、AvgBuilder、MaxBuilder、MinBuilder等常见的聚合操作。
+排序规则：
+ordertype：count（数量） _key（聚合结果的key值） _term（废弃但是仍然可用，使用_key代替）
 
-从实现上来讲，SearchRequestBuilder在内部保持了一个私有的 SearchSourceBuilder实例， SearchSourceBuilder内部包含一个List<AbstractAggregationBuilder>，每次调用addAggregation时会调用 SearchSourceBuilder实例，添加一个AggregationBuilder。
-同样的，TermsBuilder也在内部保持了一个List<AbstractAggregationBuilder>，调用addAggregation方法（来自父类addAggregation）时会添加一个AggregationBuilder。有兴趣的读者也可以阅读源码的实现。
+```
+json GET product/_search 
+{
+    "aggs": {
+        "type_agg": {
+            "terms": {
+                "field": "tags",
+                "order": {
+                    "<order_type>": "desc"
+                },
+                "size": 10
+            }
+        }
+    }
+}
+```
+
+多级排序：即排序的优先级，按照外层优先的顺序
+```
+json GET product/_search?size=0 
+{
+    "aggs": {
+        "first_sort": {
+            ..."aggs": {
+                "second_sort": {
+                    ...
+                }
+            }
+        }
+    }
+}
+```
+上例中，先按照firstsort排序，再按照secondsort排序
+
+
+
+
+
+
+
+
+
+

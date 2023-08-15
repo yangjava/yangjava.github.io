@@ -155,7 +155,45 @@ public class ElasticSearchConfig {
 
 ### 初始化Es配置添加密码
 ```
+   @Value("${elasticSearch.host}")
+    private String host;
+    @Value("${elasticSearch.port}")
+    private int port;
 
+    @Value("${elasticSearch.username}")
+    private String username;
+
+    @Value("${elasticSearch.password}")
+    private String password;
+    @Value("${elasticSearch.connectTimeout}")
+    private int connectTimeout;
+
+    @Value("${elasticSearch.socketTimeout}")
+    private int socketTimeout;
+
+    @Value("${elasticSearch.connectionRequestTimeout}")
+    private int connectionRequestTimeout;
+
+    @Bean(destroyMethod = "close", name = "ingressRestHighLevelClient")
+    public RestHighLevelClient ingressRestHighLevelClient() {
+        RestClientBuilder builder = RestClient.builder(new HttpHost(host, port))
+                .setHttpClientConfigCallback(httpAsyncClientBuilder->{
+                    CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                    credentialsProvider.setCredentials(AuthScope.ANY,
+                            new UsernamePasswordCredentials
+                                    (username, password));
+
+                    httpAsyncClientBuilder
+                            .setDefaultCredentialsProvider(
+                                    credentialsProvider);
+                    return httpAsyncClientBuilder;
+                })
+                .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
+                        .setConnectTimeout(connectTimeout)
+                        .setSocketTimeout(socketTimeout)
+                        .setConnectionRequestTimeout(connectionRequestTimeout));
+        return new RestHighLevelClient(builder);
+    }
 ```
 
 ## 初级客户端功能

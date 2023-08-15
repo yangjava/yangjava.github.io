@@ -338,6 +338,58 @@ timed_out 值告诉我们查询是否超时。默认情况下，搜索请求不�
 
 使用超时是因为 SLA(服务等级协议)对你是很重要的，而不是因为想去中止长时间运行的查询。
 
+### 查询模板
+```
+{
+  "from": 0, 
+  "size": 20, 
+  # 查询
+  "query": {
+    "bool": {
+      # 过滤，不会计算分数
+      "filter": [
+        {}
+      ], 
+      # 召回，会打分
+      "must": [
+        {}
+      ],
+      # 粗排，调权重，重打分
+      "should": [
+        {}
+      ],
+    }
+  },
+  # 精排，对topN重打分，会使用script进行复杂的控制
+  "rescore": {
+    "query": {},
+    "window_size": 50
+  },
+  # 聚合
+  "aggs": {
+    "NAME": {
+      "AGG_TYPE": {}
+    }
+  }, 
+  # 高亮
+  "highlight": {
+    "fields": {}
+  }, 
+  # 排序
+  "sort": [
+    {
+      "FIELD": {
+        "order": "desc"
+      }
+    }
+  ]
+  # 返回指定的字段内容
+  "_source": {
+    "includes": "{field}"
+  },
+  "track_total_hits": 10000
+}
+```
 ### 简单查询
 查询Elasticsearch最简单的办法是使用URI请求查询。例如，为了搜索title 字段中的crime 一词，使用下面的命令：
 ```
@@ -1132,9 +1184,9 @@ chapter_title 这个字段的 boost 值为 2 ，而其他两个字段 book_title
 聚合（aggs）不同于普通查询，是目前学到的第二种大的查询分类，第一种即“query”，因此在代码中的第一层嵌套由“query”变为了“aggs”。用于进行聚合的字段必须是exact value，分词字段不可进行聚合，对于text字段如果需要使用聚合，需要开启fielddata，但是通常不建议，因为fielddata是将聚合使用的数据结构由磁盘（docvalues）变为了堆内存（fielddata），大数据的聚合操作很容易导致OOM，详细原理会在进阶篇中阐述。
 
 聚合分类
-分桶聚合（Bucket agregations）：类比SQL中的group by的作用，主要用于统计不同类型数据的数量
-指标聚合（Metrics agregations）：主要用于最大值、最小值、平均值、字段之和等指标的统计
-管道聚合（Pipeline agregations）：用于对聚合的结果进行二次聚合，如要统计绑定数量最多的标签bucket，就是要先按照标签进行分桶，再在分桶的结果上计算最大值。
+- 分桶聚合（Bucket agregations）：类比SQL中的group by的作用，主要用于统计不同类型数据的数量
+- 指标聚合（Metrics agregations）：主要用于最大值、最小值、平均值、字段之和等指标的统计
+- 管道聚合（Pipeline agregations）：用于对聚合的结果进行二次聚合，如要统计绑定数量最多的标签bucket，就是要先按照标签进行分桶，再在分桶的结果上计算最大值。
 
 ```
 json GET product/_search 

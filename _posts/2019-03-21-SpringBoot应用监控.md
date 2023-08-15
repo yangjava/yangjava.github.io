@@ -4,8 +4,119 @@ categories: SpringBoot
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot集成监控
-大部分微服务应用都是基于 SpringBoot 来构建，所以了解 SpringBoot 的监控特性是非常有必要的，而 SpringBoot 也提供了一些特性来帮助我们监控应用。
+# SpringBoot应用监控
+在企业级应用中，对系统进行运行状态监控通常是必不可少的。Spring Boot提供了Actuator模块实现应用的监控与管理，对应的起步依赖是spring-boot-starter-actuator。
+
+## Actuator简介
+在实际的生产系统中，怎样知道应用运行良好呢？往往需要对系统实际运行的情况（例如cpu、io、disk、db、业务功能等指标）进行监控运维，这需要耗费不少精力。
+
+在SpringBoot中，完全不需要面对这样的难题。Spring Boot Actuator提供了众多HTTP接口端点（Endpoint），其中包含了丰富的Spring Boot应用程序运行时的内部状态信息。同时，我们还可以自定义监控端点，实现灵活定制。
+
+Actuator是spring boot提供的对应用系统的自省和监控功能，Actuator对应用系统本身的自省功能，可以让我们方便快捷地实现线上运维监控的工作。这有点儿像DevOps。通过Actuator，可以使用数据化的指标去度量应用的运行情况。比如查看服务器的磁盘、内存、CPU等信息，系统运行了多少线程、gc的情况、运行状态等。
+
+spring-boot-actuator模块提供了一个监控和管理生产环境的模块，可以使用http、jmx、ssh、telnet等管理和监控应用，提供了应用的审计（Auditing）、健康（Health）状态信息、数据采集（Metrics Gathering）统计等监控运维的功能。同时，我们可以扩展Actuator端点自定义监控指标。这些指标都是以JSON接口数据的方式呈现。而使用Spring Boot Admin可以实现这些JSON接口数据的界面展现。
+
+这个模块是一个采集应用内部信息暴露给外部的模块，上述的功能都可以通过HTTP 和 JMX 访问。
+
+因为暴露内部信息的特性，Actuator 也可以和一些外部的应用监控系统整合（Prometheus, Graphite, DataDog, Influx, Wavefront, New Relic等）。
+
+Actuator使用Micrometer与这些外部应用程序监视系统集成。这样一来，只需很少的配置即可轻松集成外部的监控系统。
+
+Micrometer 为 Java 平台上的性能数据收集提供了一个通用的 API，应用程序只需要使用 Micrometer 的通用 API 来收集性能指标即可。  
+
+Micrometer 会负责完成与不同监控系统的适配工作。这就使得切换监控系统变得很容易。
+
+## 启用Actuator
+在Spring Boot项目中添加Actuator起步依赖即可启用Actuator功能。在Gradle项目配置文件build.gradle中添加如下代码：
+```
+dependencies {
+    compile('org.springframework.boot:spring-boot-starter-actuator')
+    ...
+}
+```
+使用Maven配置
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+在Spring Boot 2.0中，Actuator模块做了较大更新，默认启用的端点如下：
+```
+{
+    _links: {
+        self: {
+        href: "http:// 127.0.0.1:8008/actuator",
+        templated: false
+        },
+        health: {
+        href: "http:// 127.0.0.1:8008/actuator/health",
+        templated: false
+            },
+        info: {
+        href: "http:// 127.0.0.1:8008/actuator/info",
+        templated: false
+        }
+    }
+}
+
+```
+如果想启用所有端点，在application.properties中按如下配置：
+```
+#endpoints in Spring Boot 2.0
+#http:// 127.0.0.1:8008/actuator
+management.endpoints.enabled-by-default=true
+management.endpoints.web.expose=*
+```
+
+## 常用的Actuator端点
+Actuator监控分成两类：原生端点和用户自定义端点。
+
+原生端点是Actuator组件内置的，在应用程序中提供了众多Web接口。
+
+通过它们了解应用程序运行时的内部情况，原生端点可以分成3类：
+- 应用配置类
+可以查看应用在运行期的静态信息，比如自动配置信息、加载的Spring Bean信息、YML文件配置信息、环境信息、请求映射信息
+- 度量指标类
+主要是运行期的动态信息，如堆栈、请求连接、健康状态、系统性能等。
+- 操作控制类
+主要是指shutdown，用户可以发送一个请求将应用的监控功能关闭。
+
+
+
+
+
+
+
+
+
+## 自定义Actuator端点
+Spring Boot支持自定义端点，只需要在我们定义的类中使用@Endpoint、@JmxEndpoint、@WebEndpoint等注解，实现对应的方法即可定义一个Actuator中的自定义端点。
+
+从Spring Boot 2.x版本开始，Actuator支持CRUD（增删改查）模型，而不是旧的RW（读/写）模型。我们可以按照3种策略来自定义：
+
+- 使用@Endpoint注解，同时支持JMX和HTTP方式。
+- 使用@JmxEndpoint注解，只支持JMX技术。
+- 使用@WebEndpoint注解，只支持HTTP。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 什么是Actuator?
 致动器（actuator）是2018年公布的计算机科学技术名词。
