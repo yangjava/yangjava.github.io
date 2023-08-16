@@ -151,36 +151,71 @@ http_request_total{status=“200”，method=“GET”}@1434417560938=>94355
 - =~：与正则匹配
 - !~：与正则不匹配
 
-### 匹配器（Matcher）
+## 匹配器（Matcher）
 匹配器是作用于标签上的，标签匹配器可以对时间序列进行过滤，Prometheus支持完全匹配和正则匹配两种模式：完全匹配和正则表达式匹配。
 
-- 完全匹配
-相等匹配器（=）
-相等匹配器（Equality Matcher），用于选择与提供的字符串完全相同的标签。下面介绍的例子中就会使用相等匹配器按照条件进行一系列过滤。
+### 相等匹配器（=）
+相等匹配器（Equality Matcher），用于选择与提供的字符串完全相同的标签。
+
+下面介绍的例子中就会使用相等匹配器按照条件进行一系列过滤。例：筛选出id=“G1 Eden Space” 的数据
 ```
-node_cpu_seconds_total{instance="ydzs-master"}
+jvm_memory_used_bytes{id="G1 Eden Space"}
 ```
 
-- 不相等匹配器（!=）
-不相等匹配器（Negative Equality Matcher），用于选择与提供的字符串不相同的标签。它和相等匹配器是完全相反的。举个例子，如果想要查看job并不是HelloWorld的HTTP请求总数，可以使用如下不相等匹配器。
+### 不相等匹配器（!=）
+不相等匹配器（Negative Equality Matcher），用于选择与提供的字符串不相同的标签。
 
-- 正则表达式匹配器（=~）
-正则表达式匹配器（Regular Expression Matcher），用于选择与提供的字符串进行正则运算后所得结果相匹配的标签。Prometheus的正则运算是强指定的，比如正则表达式a只会匹配到字符串a，而并不会匹配到ab或者ba或者abc。如果你不想使用这样的强指定功能，可以在正则表达式的前面或者后面加上“.*”。比如下面的例子表示job是所有以Hello开头的HTTP请求总数。
+它和相等匹配器是完全相反的。例：选择 id 不为G1 Eden Space 的数据
+```
+jvm_memory_used_bytes{id!="G1 Eden Space"}
+```
+
+### 正则表达式匹配器（=~）
+正则表达式匹配器（Regular Expression Matcher），用于选择与提供的字符串进行正则运算后所得结果相匹配的标签。
+
+Prometheus的正则运算是强指定的，比如正则表达式a只会匹配到字符串a，而并不会匹配到ab或者ba或者abc。
+
+如果你不想使用这样的强指定功能，可以在正则表达式的前面或者后面加上“.*”。
+
+比如下面的例子表示job是所有以Hello开头的HTTP请求总数。
 ```
 node_cpu_seconds_total{instance=~"ydzs-.*", mode="idle"}
 ```
-node_cpu_seconds_total直接等效于**{__name__=“node_cpu_seconds_total”}，后者也可以使用和前者一样的4种匹配器（=，!=，=，!**）。比如下面的案例可以表示所有以Hello开头的指标。
+node_cpu_seconds_total直接等效于**{__name__=“node_cpu_seconds_total”}，后者也可以使用和前者一样的4种匹配器（=，!=，=，!**）。
+
+比如下面的案例可以表示所有以Hello开头的指标。
 ```
 {__name__="node_cpu_seconds_total",instance=~"ydzs-.*", mode="idle"}
 ```
 
-- 正则表达式相反匹配器（!~）
-正则表达式相反匹配器（Negative Regular Expression Matcher），用于选择与提供的字符串进行正则运算后所得结果不匹配的标签。因为PromQL的正则表达式基于RE2的语法，但是RE2不支持向前不匹配表达式，所以**!~**的出现是作为一种替代方案，以实现基于正则表达式排除指定标签值的功能。在一个选择器当中，可以针对同一个标签来使用多个匹配器。比如下面的例子，可以实现查找job名是node且安装在/prometheus目录下，但是并不在/prometheus/user目录下的所有文件系统并确定其大小。
+### 正则表达式相反匹配器（!~）
+正则表达式相反匹配器（Negative Regular Expression Matcher），用于选择与提供的字符串进行正则运算后所得结果不匹配的标签。
+
+因为PromQL的正则表达式基于RE2的语法，但是RE2不支持向前不匹配表达式，所以**!~**的出现是作为一种替代方案，以实现基于正则表达式排除指定标签值的功能。 在一个选择器当中，可以针对同一个标签来使用多个匹配器。
+
+比如下面的例子，可以实现查找job名是node且安装在/prometheus目录下，但是并不在/prometheus/user目录下的所有文件系统并确定其大小。
 ```
 node_filesystem_size_bytes{job="node",mountpoint=~"/prometheus/.*", mountpoint!~ "/prometheus/user/.*"}
 ```
 
-- 范围选择器
+## PromQL 选择器
+
+### 瞬时向量选择器
+返回在指定时间戳查询到的最新样本值 最简单形式：返回包含该指标名称的所有时间序列的瞬时向量
+
+例：筛选出了所有指标为jvm_memory_used_bytes的数据
+```
+jvm_memory_used_bytes
+```
+
+### 区间向量选择器
+返回一段时间内的样本数据。通过末尾[]进行时间定义，如[1m]，表示1分钟之内
+
+例：返回一分钟内的数据
+```
+jvm_memory_used_bytes[1m]
+```
+
 我们可以通过将时间范围选择器（[]）(https://prometheus.io/docs/prometheus/latest/querying/basics/#range-vector-selectors)附加到查询语句中，指定为每个返回的区间向量样本值中提取多长的时间范围。每个时间戳的值都是按时间倒序记录在时间序列中的，该值是从时间范围内的时间戳获取的对应的值。
 
 时间范围通过数字来表示，单位可以使用以下其中之一的时间单位：
@@ -190,7 +225,7 @@ node_filesystem_size_bytes{job="node",mountpoint=~"/prometheus/.*", mountpoint!~
 - d - 天
 - w - 周
 - y - 年
-比如 node_cpu_seconds_total{instance="ydzs-master",mode="idle"} 这个查询语句，如果添加上 [1m] 这个时间范围选择器，则我们可以得到如下所示的信息：
+  比如 node_cpu_seconds_total{instance="ydzs-master",mode="idle"} 这个查询语句，如果添加上 [1m] 这个时间范围选择器，则我们可以得到如下所示的信息：
 ```
 node_cpu_seconds_total{instance="ydzs-master",mode="idle"}[5m]
 ```
@@ -202,20 +237,53 @@ node_cpu_seconds_total{instance="ydzs-master",mode="idle"}[5m]
 - irate(): 仅使用时间范围中的最后两个数据点来计算区间向量中时间序列的每秒平均增长率， irate 只能用于绘制快速变化的序列，在长期趋势分析或者告警中更推荐使用 rate 函数。
 - increase(): 计算所选时间范围内时间序列的增量，它基本上是速率乘以时间范围选择器中的秒数。
 
+### 偏移量修改器
+可以让瞬时向量和区间向量的时间发生偏移
+
+例：查询前1分钟的jvm_memory_used_bytes 样本值
+```
+jvm_memory_used_bytes offset 1m
+```
+
+### @ 修饰符
+@ 修饰符能够修改瞬时向量和区间向量的求值时间，使用@时间戳 表示
+
+例：查询 2023-01-18 19:08:59 的 jvm_memory_used_bytes 指标
+```
+jvm_memory_used_bytes @1674040139
+```
+
+例：查询2023-01-18 19:08:59 时，前 5分钟的 jvm_memory_used_bytes指标
+```
+jvm_memory_used_bytes @1674040139 offset 5m
+```
+
 ## PromQL 运算符
 
 ### 数学运算符
 数学运算符比较简单，就是简单的加减乘除等。
 
-例如：我们通过 prometheus_http_response_size_bytes_sum 可以查询到 Prometheus 这个应用的 HTTP 响应字节总和。但是这个单位是字节，我们希望用 MB 显示。那么我们可以这么设置：prometheus_http_response_size_bytes_sum/8/1024。
-
 PromQL支持的所有数学运算符如下所示：
-- + (加法)
-- - (减法)
-- * (乘法)
-- / (除法)
-- % (求余)
-- ^ (幂运算)
+- `+ (加法)`
+- `- (减法)`
+- `* (乘法)`
+- `/ (除法)`
+- `% (求余)`
+- `^ (幂运算)`
+
+例如：我们通过 prometheus_http_response_size_bytes_sum 可以查询到 Prometheus 这个应用的 HTTP 响应字节总和。但是这个单位是字节，我们希望用 MB 显示。
+
+那么我们可以这么设置
+```
+prometheus_http_response_size_bytes_sum/8/1024。
+```
+
+计算堆内存使用率
+sum(jvm_memory_used_bytes{area=“heap”}) 表示已使用的堆内存
+sum(jvm_memory_max_bytes{area=“heap”}) 表示堆总内存
+```
+sum(jvm_memory_used_bytes{area="heap"})*100 / sum(jvm_memory_max_bytes{area="heap"})
+```
 
 ### 布尔运算符
 布尔运算符支持用户根据时间序列中样本的值，对时间序列进行过滤。
@@ -245,12 +313,13 @@ prometheus_http_requests_total > bool 20
 
 ### 集合运算符
 通过集合运算，可以在两个瞬时向量与瞬时向量之间进行相应的集合操作。目前，Prometheus支持以下集合运算符：
+and（并且）、or（或者）、unless（排除）
 - and 与操作
 - or 或操作
 - unless 排除操作
 
 - and 与操作
-vector1 and vector2 进行一个与操作，会产生一个新的集合。该集合中的元素同时在 vector1 和 vector2 中都存在。
+and为并集，用于匹配表达式中相同的结果。vector1 and vector2 进行一个与操作，会产生一个新的集合。该集合中的元素同时在 vector1 和 vector2 中都存在。
 
 例如：我们有 vector1 为 A B C，vector2 为 B C D，那么 vector1 and vector2 的结果为：B C。
 
@@ -259,12 +328,20 @@ vector1 and vector2 进行一个或操作，会产生一个新的集合。该集
 
 例如：我们有 vector1 为 A B C，vector2 为 B C D，那么 vector1 or vector2 的结果为：A B C D。
 
+如下示例，该表达式将匹配大于100小于1000区间的时间序列样本
+```
+prometheus_http_requests_total < 1000 or prometheus_http_requests_total > 100
+```
+其中，表达式1为显示所有小于1千的样本，而表达式2则是显示所有大于100的样本，在并集匹配后，将会显示两者间相同的数据，即小于1千大于100这个区间的样本。
+
 - unless 排除操作
 vector1 and vector2 进行一个或操作，会产生一个新的集合。该集合首先取 vector1 集合的所有元素，然后排除掉所有在 vector2 中存在的元素。
 
 例如：我们有 vector1 为 A B C，vector2 为 B C D，那么 vector1 unless vector2 的结果为：A。
 
-- 操作符优先级
+unless与and正好相反，匹配结果将会排除两者中相同的样本，只显示其中对方互不包含部分的合集；而or的匹配范围最广，它除了会匹配表达式1所有的数据外，还会匹配表达式2中与其不相同的样本。
+
+## 操作符优先级
 在PromQL操作符中优先级由高到低依次为：
 
 ^
