@@ -7,8 +7,57 @@ keywords: Prometheus
 # Prometheus源码服务发现
 prometheus与时俱进在现在各种容器管理平台流行的当下，能够对各种容器管理平台进行数据采集和处理，并且能够自动发现监控对象，这个就是今天要说的discovery。
 
-## discovery简介
+## 服务发现机制
+Prometheus是基于Pull模式抓取监控数据，首先要能够发现需要监控的目标对象target，特别Prometheus最开始设计是一个面向云原生应用程序的，云原生、容器场景下按需的资源使用方式对于监控系统而言就意味着没有了一个固定的监控目标，
+
+所有的监控对象(基础设施、应用、服务)都在动态的变化。而对于Prometheus而言其解决方案就是引入一个中间的代理人（服务注册中心），这个代理人掌握着当前所有监控目标的访问信息，
+
+Prometheus只需要向这个代理人询问有哪些监控目标控即可， 这种模式被称为服务发现(service discovery)。
+
+SD模块专门负责去发现需要监控的target信息，Prometheus去从SD模块订阅该信息，有target信息时会推送给Prometheus，然后Prometheus拿到target信息后通过pull http协议去拉取监控指标数据。
+
 discovery是一个资源发现的组件，能够根据资源变化调整监控对象。目前已经支持的discovery主要有DNS、kubernetes、marathon、zk、consul、file等。discovery支持文件、http、consul等自动发现targets，targets会被发送到scrape模块进行拉取。
+
+Prometheus支持的服务发现协议是非常丰富的，目前已支持多达二十多种服务发现协议：
+```
+<azure_sd_config>
+<consul_sd_config>
+<digitalocean_sd_config>
+<docker_sd_config>
+<dockerswarm_sd_config>
+<dns_sd_config>
+<ec2_sd_config>
+<openstack_sd_config>
+<file_sd_config>
+<gce_sd_config>
+<hetzner_sd_config>
+<http_sd_config>
+<kubernetes_sd_config>
+<kuma_sd_config>
+<lightsail_sd_config>
+<linode_sd_config>
+<marathon_sd_config>
+<nerve_sd_config>
+<serverset_sd_config>
+<triton_sd_config>
+<eureka_sd_config>
+<scaleway_sd_config>
+<static_config>
+```
+
+## 服务发现原理
+Prometheus核心功能包括服务发现、数据采集和数据存储。服务发现模块专门负责发现需要监控的目标采集点(target)信息，数据采集模块从服务发现模块订阅该信息，获取到target信息后，其中就包含协议(scheme)、主机地址:端口(instance)、请求路径(metrics_path)、请求参数(params)等；
+
+然后数据采集模块就可以基于这些信息构建出一个完整的Http Request请求，定时通过pull http协议不断的去目标采集点(target)拉取监控样本数据(sample)；最后，将采集到监控样本数据交由TSDB模块进行数据存储。
+
+Prometheus服务发现实现原理大致如下:
+- 配置处理模块解析的prometheus.yml配置中scrape_configs部分，将配置的job生成一个个Discoverer服务，不同的服务发现协议都会有各自的Discoverer实现方式，它们根据实现逻辑去发现target，并将其放入到targets容器中；
+
+- discoveryManager组件内部有个定时周期触发任务，每5秒检查targets容器，如果有变更则将targets容器中target信息放入到syncCh通道中；
+
+- scrape组件会监听syncCh通道，这样需要监控的targets信息就传递给scrape组件，然后reload将target纳入监控开始抓取监控指标。
+
+配置处理部分会根据scrape_configs部分配置的不同协议类型生成不同Discoverer，然后根据它们内部不同的实现逻辑去发现target，discoveryManager组件则相当于一个搬运工，scrape组件则是一个使用者，这两个组件都无感知服务发现协议的差异。
 
 ## 整体框架
 discovery组件通过Manager对象管理所有的逻辑，当有数据变化时，通过syncChannel将数据发送给scrape组件。
@@ -24,6 +73,147 @@ scrape组件接收syncChannel中的数据，然后使用reload()进行抓取对�
 - 若有新job，则创建scrapePool并启动它；
 - 若有新target，则创建scrapeLoop并启动它；
 - 若有消失的target，则停止其scrapeLoop；
+
+下面分别来分析下配置处理、discoveryManager组件和scrape组件在服务发现方面的具体实现流程。
+
+## 配置处理
+Prometheus启动流程，有个配置加载组件通过reloadConfig加载解析prometheus配置文件后，
+
+在reloader中循环调用各个组件的`ApplyConfig(cfg map[string]Configs)`方法处理配置，这其中就包括discovery/manager.go:
+
+reloader中定义如下：
+```
+{
+ name: "scrape_sd",
+ //从配置文件中提取Section:scrape_configs
+ reloader: func(cfg *config.Config) error {
+  c := make(map[string]discovery.Configs)
+  for _, v := range cfg.ScrapeConfigs {
+   c[v.JobName] = v.ServiceDiscoveryConfigs
+  }
+  return discoveryManagerScrape.ApplyConfig(c)
+ },
+}
+```
+那下面就从discovery/manager.go中定义的ApplyConfig()方法分析。
+
+根据配置注册provider：
+```
+for name, scfg := range cfg {
+    //根据配置注册provider
+ failedCount += m.registerProviders(scfg, name)
+ discoveredTargets.WithLabelValues(m.name, name).Set(0)
+}
+```
+其中关键的是m.registerProviders(scfg, name)，继续跟踪：
+```
+d, err := cfg.NewDiscoverer(DiscovererOptions{
+ Logger: log.With(m.logger, "discovery", typ),
+})
+```
+然后将所有注册到m.providers数组中的provider进行启动：
+```
+for _, prov := range m.providers {
+ // 启动服务发现实例
+ m.startProvider(m.ctx, prov)
+}
+```
+跟踪到m.startProvider(m.ctx, prov)方法中：
+```
+updates := make(chan []*targetgroup.Group)
+// 执行run  每个服务发现都有自己的run方法。
+go p.d.Run(ctx, updates)
+// 更新发现的服务
+go m.updater(ctx, p, updates)
+```
+发现这里主要是启动两个协程，它们之间使用updates通道类型变量进行通信。
+
+总结来说：
+- 每个Config都会对应创建一个Discoverer实例，并被封装到provider存储在m.providers数组中；
+- 然后遍历providers数组进行启动操作，启动操作启动了两个协程：
+  - Discoverer.Run协程逻辑中主要根据发现协议发现targets；
+  - 然后通过通道传递给discovery/Manager.updater协程中，将其存放到m.targets集合map中；
+
+配置处理这里还有个比较关键的：Discoverer会根据不同协议实现发现target，它是如何实现的呢？
+
+首先，我们来看下Discoverer实例创建：d, err := cfg.NewDiscoverer()，它是一个接口定义：
+```
+type Config interface {
+ Name() string
+ NewDiscoverer(DiscovererOptions) (Discoverer, error)
+}
+```
+每种服务发现协议都在自己的SDConfig中实现了各自的NewDiscoverver()方法，这样就可以将服务发现逻辑封装到Discovererver实现中：
+
+## discoveryManager组件
+启动discoveryManagerScrape组件通过通道将targets数据信息传递给scrapeManager组件
+
+discoveryManagerScrape组件启动入口：
+```
+g.Add(
+ func() error {
+  err := discoveryManagerScrape.Run()
+  level.Info(logger).Log("msg", "Scrape discovery manager stopped")
+  return err
+ },
+ func(err error) {
+  level.Info(logger).Log("msg", "Stopping scrape discovery manager...")
+  cancelScrape()
+ },
+)
+```
+一直跟踪会进入到sender()方法中，配置处理模块说过，有个协程会将Discoverer组件发现的targets信息存储到m.targets集合map中，然后给m.triggerSend发送信号，sender方法中就是启动定时周期触发器监听m.triggerSend信号：
+```
+func (m *Manager) sender() {
+    // 周期性定时器定时触发任务，这里是5s触发一次
+ ticker := time.NewTicker(m.updatert)
+ defer ticker.Stop()
+
+ for {
+  select {
+  case <-m.ctx.Done():
+   return
+  case <-ticker.C: // Some discoverers send updates too often so we throttle these with the ticker.
+   select {
+   case <-m.triggerSend:
+    sentUpdates.WithLabelValues(m.name).Inc()
+    select {
+    case m.syncCh <- m.allGroups():
+    default:
+     delayedUpdates.WithLabelValues(m.name).Inc()
+     level.Debug(m.logger).Log("msg", "Discovery receiver's channel was full so will retry the next cycle")
+     select {
+     case m.triggerSend <- struct{}{}:
+     default:
+     }
+    }
+   default:
+   }
+  }
+ }
+}
+```
+监听到m.triggerSend信号，则执行m.syncCh <- m.allGroups()，我们来看下m.allGroups()干了什么？
+```
+func (m *Manager) allGroups() map[string][]*targetgroup.Group {
+ m.mtx.RLock()
+ defer m.mtx.RUnlock()
+
+ tSets := map[string][]*targetgroup.Group{}
+ for pkey, tsets := range m.targets {
+  var n int
+  for _, tg := range tsets {
+   // Even if the target group 'tg' is empty we still need to send it to the 'Scrape manager'
+   // to signal that it needs to stop all scrape loops for this target set.
+   tSets[pkey.setName] = append(tSets[pkey.setName], tg)
+   n += len(tg.Targets)
+  }
+  discoveredTargets.WithLabelValues(m.name, pkey.setName).Set(float64(n))
+ }
+ return tSets
+}
+```
+其实就是将m.targets数据发送到m.syncCh通道上，所以，discoveryManager组件比较简单，就是一个搬运工。
 
 ## 服务发现 (serviceDiscover) 简介
 Prometheus采用pull方式拉取监控数据，需要实时感知被监控服务(Target)的变化．服务发现(serviceDiscover)支持多种服务发现系统，这些系统可以动态感知被监控的服务(Target)的变化，把变化的被监控服务(Target)转换为targetgroup.Group的结构，通过管道up发送个服务发现(serviceDiscover)．
@@ -582,6 +772,60 @@ func (m *Manager) SyncCh() <-chan map[string][]*targetgroup.Group {
 	return m.syncCh
 }
 ```
+
+## scrape组件
+scrapeManager组件启动：scrapeManager.Run(discoveryManagerScrape.SyncCh())，通道syncCh是被scrapeManager组件持有的，跟踪进入Run方法中：
+
+```
+func (m *Manager) Run(tsets <-chan map[string][]*targetgroup.Group) error {
+ go m.reloader()
+ for {
+  select {
+  //通过管道获取被监控的服务(targets)
+  case ts := <-tsets:
+   m.updateTsets(ts)
+
+   select {
+   // 关闭 Scrape Manager 处理信号
+   //若从服务发现 (serviceDiscover)有服务(targets)变动，则给管道triggerReload传值，并触发reloader()方法更新服务
+   case m.triggerReload <- struct{}{}:
+   default:
+   }
+
+  case <-m.graceShut:
+   return nil
+  }
+ }
+}
+```
+通过case ts := <-tsets获取到syncCh通道上传递过来的targets数据，然后调用m.updateTsets(ts)将targets数据存储到scrapeManager.targetSets中，然后给m.triggerReload发送信号。
+
+这个方法中go m.reloader()启动了一个协程，进入reloader()方法中：
+```
+func (m *Manager) reloader() {
+ //定时器5s
+ ticker := time.NewTicker(5 * time.Second)
+ defer ticker.Stop()
+
+ for {
+  select {
+  case <-m.graceShut:
+   return
+   // 若服务发现(serviceDiscovery)有服务(targets)变动，就会向管道triggerReload写入值，定时器每5s判断一次triggerReload管道是否有值，若有值，则触发reload方法
+  case <-ticker.C:
+   select {
+   case <-m.triggerReload:
+    m.reload()
+   case <-m.graceShut:
+    return
+   }
+  }
+ }
+}
+```
+
+也是通过定时周期触发任务监听m.triggerReload信号，执行m.reload()将targets加载进来。
+
 至此，服务发现 (serviceDiscover)功能分析结束
 
 
