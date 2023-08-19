@@ -159,7 +159,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:127.0.0.1:11800}
 ## 自定义SkyWalking链路追踪
 如果我们希望对项目中的业务方法，实现链路追踪，方便我们排查问题，可以使用如下的代码
 引入依赖
-```xml
+```
 <!‐‐ SkyWalking 工具类 ‐‐>  
 <dependency>  
     <groupId>org.apache.skywalking</groupId>  

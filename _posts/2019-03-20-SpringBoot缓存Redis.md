@@ -5,6 +5,9 @@ description: none
 keywords: SpringBoot
 ---
 # SpringBoot缓存Redis
+Spring Boot提供了对缓存的支持，可以与多种缓存器集成。其中，Redis是非常流行的缓存器。
+
+## 缓存Redis
 
 ### 导入依赖
 就只需要这一个依赖！不需要spring-boot-starter-cache
@@ -40,6 +43,117 @@ spring.redis.pool.min-idle=2 # 连接池中的最小空闲连接
 spring.redis.timeout=0 # 连接超时时间（毫秒）
 ```
 如果你的Redis这时候已经可以启动程序了。
+
+## 添加缓存注解
+在需要缓存的类或方法上添加 @Cacheable 或 @CachePut 注解。例如：
+```
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserDao userDao;
+
+    @Cacheable(value = "user", key = "#username")
+    public User getUserByUsername(String username) {
+        System.out.println("没有使用缓存，从数据库中获取数据...");
+        return userDao.getUserByUsername(username);
+    }
+
+   @CachePut(value = "user", key = "#username")
+    public User updateUserByUsername(String username, User user) {
+        System.out.println("更新用户信息，并将结果写入缓存...");
+        userDao.updateUserByUsername(username, user);
+        return user;
+    }
+}
+```
+
+## 设置缓存的有效时间
+在需要设置缓存有效时间的方法上添加 @Cacheable 或 @CachePut 注解的 cacheManager 属性。例如：
+```
+@Cacheable(value = "user", key = "#username", cacheManager = "cacheManager10")
+public User getUserByUsername(String username) {
+    System.out.println("没有使用缓存，从数据库中获取数据...");
+    return userDao.getUserByUsername(username);
+}
+```
+
+在Spring Boot容器中，可以创建多个缓存管理器对象。我们可以为不同的缓存对象设置不同的缓存管理器，从而为缓存对象设置不同的过期时间。例如：
+```
+@Configuration
+public class CacheConfig {
+
+    @Bean("cacheManager10")
+    public CacheManager cacheManager10(RedisConnectionFactory factory) {
+        RedisCacheManager cacheManager = RedisCacheManager.create(factory);
+        // 设置缓存有效期为10秒
+        cacheManager.setDefaultExpiration(10);
+        return cacheManager;
+    }
+
+    @Bean("cacheManager30")
+    public CacheManager cacheManager30(RedisConnectionFactory factory) {
+        RedisCacheManager cacheManager = RedisCacheManager.create(factory);
+        // 设置缓存有效期为30秒
+        cacheManager.setDefaultExpiration(30);
+        return cacheManager;
+    }
+}
+```
+以上代码中，我们创建了两个缓存管理器对象 cacheManager10 和 cacheManager30，并分别设置了它们默认的缓存有效期为10秒和30秒。
+
+最新的配置
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+public class CacheConfig {
+
+    @Bean
+    public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
+        RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(5)); // 设置默认的过期时间为5分钟
+
+        // 为每个缓存设置不同的过期时间
+        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+        cacheConfigurations.put("cache1", defaultCacheConfig.entryTtl(Duration.ofMinutes(10)));
+        cacheConfigurations.put("cache2", defaultCacheConfig.entryTtl(Duration.ofMinutes(15)));
+
+        return RedisCacheManager.builder(redisConnectionFactory)
+                .cacheDefaults(defaultCacheConfig)
+                .withInitialCacheConfigurations(cacheConfigurations)
+                .build();
+    }
+}
+
+```
+## 自动刷新缓存
+上述方法中，设置的缓存有效期是固定的。如果我们需要当数据更新时自动刷新缓存，就需要使用Redis的 TTL 功能。
+
+以设置缓存有效期为10秒为例，在缓存对象存储到Redis中时，同时设置缓存对象的TTL为10秒。当缓存对象的TTL到期时，Redis会自动删除该对象，并且该对象的@Cacheable注解也会失效，下一次调用会重新执行方法，获取最新的数据。
+
+更新用户信息时，我们可以使用 @CachePut 注解细粒度地控制缓存更新，同时手动设置对象的TTL为10秒。例如：
+```
+@CachePut(value = "user", key = "#username", cacheManager = "cacheManager10")
+public User updateUserByUsername(String username, User user) {
+    System.out.println("更新用户信息，并将结果写入缓存...");
+    userDao.updateUserByUsername(username, user);
+    // 手动设置缓存对象的TTL为10秒
+    RedisCache redisCache = (RedisCache) cacheManager.getCache("user");
+    redisCache.put(username, user, Duration.ofSeconds(10));
+    return user;
+}
+```
+当更新用户信息时，缓存对象的TTL也会更新，从而保证了数据的一致性。
+
 
 ### 装配
 
