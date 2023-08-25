@@ -4,9 +4,8 @@ categories: Mybatis
 description: none
 keywords: Mybatis
 ---
+# Mybatis源码创建Mapper代理
 
-
-# [Mybaits 源码解析 （五）----- Mapper接口底层原理（为什么Mapper不用写实现类就能访问到数据库？）](https://www.cnblogs.com/java-chen-hao/p/11752084.html)
 
 **正文**
 

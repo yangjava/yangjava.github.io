@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: ElasticSearch
+categories: [ElasticSearch]
 description: none
 keywords: ElasticSearch
 ---

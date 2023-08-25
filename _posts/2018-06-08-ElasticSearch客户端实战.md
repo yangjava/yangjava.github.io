@@ -27,7 +27,7 @@ ES服务器有两个可选端口，一个是9200（HTTP），一个是9300（TCP
 ## Java整合ES
 
 ### Maven依赖
-```xml
+```
     <properties>
     <java.version>1.8</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>

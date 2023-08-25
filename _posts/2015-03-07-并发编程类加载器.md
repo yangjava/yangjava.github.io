@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: JUC
+categories: [JUC]
 description: none
 keywords: JUC
 ---
