@@ -1,9 +1,10 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
+# SpringBoot源码容器原理
 
 ## 内置Servlet容器源码分析（Tomcat）
 

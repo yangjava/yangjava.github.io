@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Zookeeper
+categories: [Zookeeper]
 description: none
 keywords: Zookeeper
 ---
@@ -10,7 +10,7 @@ ZooKeeper是一个为分布式应用所设计的开源协调服务。主要用�
 ## Zookeeper简介
 ApacheZooKeeper是 Apache 软件基金会的一个软件项目，它为大型分布式计算提供开源的分布式配置服务、同步服务和命名注册。ZooKeeper 曾经是 Hadoop 的一个子项目，但现在是一个独立的顶级项目。
 官网介绍:
-```text
+```
 Apache ZooKeeper is an effort to develop and maintain an open-source server which enables highly reliable distributed coordination.
 ```
 官网介绍：**Apache ZooKeeper 致力于开发和维护一个开源服务器，以高可靠的分布式协调服务。**
@@ -134,19 +134,19 @@ Znode有三种类型，Znode的类型在创建时确定并且不能修改。
 
 每一个节点都有一个自己的状态属性，记录了节点本身的一些信息，这些属性包括的内容如下表所示：
 
-| 状态属性       | 说明                                                         |
-| -------------- | ------------------------------------------------------------ |
-| cZxid          | Created ZXID表示该数据节点被创建时的事务ID                   |
-| ctime          | Created Time表示节点被创建的时间                             |
-| mZxid          | Modified ZXID 表示该节点最后一次被更新时的事务ID             |
-| mtime          | Modified Time表示节点最后一次被更新的时间                    |
+| 状态属性           | 说明                                                            |
+|----------------|---------------------------------------------------------------|
+| cZxid          | Created ZXID表示该数据节点被创建时的事务ID                                  |
+| ctime          | Created Time表示节点被创建的时间                                        |
+| mZxid          | Modified ZXID 表示该节点最后一次被更新时的事务ID                              |
+| mtime          | Modified Time表示节点最后一次被更新的时间                                   |
 | pZxid          | 表示该节点的子节点列表最后一次被修改时的事务ID。只有子节点列表变更了才会变更pZxid,子节点内容变更不会影响pZxid |
-| cversion       | 子节点的版本号这表示对此znode的子节点进行的更改次数          |
-| dataVersion    | 数据节点版本号表示对该znode的数据所做的更改次数              |
-| aclVersion     | 节点的ACL版本号表示对此znode的ACL进行更改的次数              |
-| ephemeralOwner | 创建该临时节点的会话的SessionID。如果节点是持久节点，这个属性为0 |
-| dataLength     | 数据内容的长度                                               |
-| numChildren    | 当前节点的子节点个数                                         |
+| cversion       | 子节点的版本号这表示对此znode的子节点进行的更改次数                                  |
+| dataVersion    | 数据节点版本号表示对该znode的数据所做的更改次数                                    |
+| aclVersion     | 节点的ACL版本号表示对此znode的ACL进行更改的次数                                 |
+| ephemeralOwner | 创建该临时节点的会话的SessionID。如果节点是持久节点，这个属性为0                         |
+| dataLength     | 数据内容的长度                                                       |
+| numChildren    | 当前节点的子节点个数                                                    |
 
 Zookeeper中版本(version)表示的是对数据节点的数据内容、子节点列表或是节点ACL信息的修改次数，初始为0表示没有被修改，每当对数据内容进行更新，version就会加1。如果前后两次修改并没有使得数据内容发生变化，version的值依然会变化。修改时如果设置version=-1,表示客户端并不要求使用乐观锁，可以忽略版本对比。
 
@@ -342,23 +342,23 @@ clientPort=2181
 ```
 ### zookeeper有关配置信息
 
-| 参数名                                | 默认    | 描述                                                         |
-| ------------------------------------- | ------- | ------------------------------------------------------------ |
-| clientPort                            |         | 服务的监听端口                                               |
-| dataDir                               |         | 用于存放内存数据快照的文件夹，同时用于集群的myid文件也存在这个文件夹里 |
-| tickTime                              | 2000    | Zookeeper的时间单元。Zookeeper中所有时间都是以这个时间单元的整数倍去配置的。例如，session的最小超时时间是2*tickTime。（单位：毫秒） |
-| dataLogDir                            |         | 事务日志写入该配置指定的目录，而不是“ dataDir ”所指定的目录。这将允许使用一个专用的日志设备并且帮助我们避免日志和快照之间的竞争 |
+| 参数名                                   | 默认      | 描述                                                                                                                      |
+|---------------------------------------|---------|-------------------------------------------------------------------------------------------------------------------------|
+| clientPort                            |         | 服务的监听端口                                                                                                                 |
+| dataDir                               |         | 用于存放内存数据快照的文件夹，同时用于集群的myid文件也存在这个文件夹里                                                                                   |
+| tickTime                              | 2000    | Zookeeper的时间单元。Zookeeper中所有时间都是以这个时间单元的整数倍去配置的。例如，session的最小超时时间是2*tickTime。（单位：毫秒）                                     |
+| dataLogDir                            |         | 事务日志写入该配置指定的目录，而不是“ dataDir ”所指定的目录。这将允许使用一个专用的日志设备并且帮助我们避免日志和快照之间的竞争                                                   |
 | globalOutstandingLimit                | 1,000   | 最大请求堆积数。默认是1000。Zookeeper运行过程中，尽管Server没有空闲来处理更多的客户端请求了，但是还是允许客户端将请求提交到服务器上来，以提高吞吐性能。当然，为了防止Server内存溢出，这个请求堆积数还是需要限制下的。 |
-| preAllocSize                          | 64M     | 预先开辟磁盘空间，用于后续写入事务日志。默认是64M，每个事务日志大小就是64M。如果ZK的快照频率较大的话，建议适当减小这个参数。 |
-| snapCount                             | 100,000 | 每进行snapCount次事务日志输出后，触发一次快照， 此时，Zookeeper会生成一个snapshot.*文件，同时创建一个新的事务日志文件log.*。默认是100,000. |
-| traceFile                             |         | 用于记录所有请求的log，一般调试过程中可以使用，但是生产环境不建议使用，会严重影响性能。 |
-| maxClientCnxns                        |         | 最大并发客户端数，用于防止DOS的，默认值是10，设置为0是不加限制 |
-| clientPortAddress / maxSessionTimeout |         | 对于多网卡的机器，可以为每个IP指定不同的监听端口。默认情况是所有IP都监听 clientPort 指定的端口 |
-| minSessionTimeout                     |         | Session超时时间限制，如果客户端设置的超时时间不在这个范围，那么会被强制设置为最大或最小时间。默认的Session超时时间是在2 * tickTime ~ 20 * tickTime 这个范围 |
-| fsync.warningthresholdms              | 1000    | 事务日志输出时，如果调用fsync方法超过指定的超时时间，那么会在日志中输出警告信息。默认是1000ms。 |
-| autopurge.snapRetainCount             |         | 参数指定了需要保留的事务日志和快照文件的数目。默认是保留3个。和autopurge.purgeInterval搭配使用 |
-| autopurge.purgeInterval               |         | 在3.4.0及之后版本，Zookeeper提供了自动清理事务日志和快照文件的功能，这个参数指定了清理频率，单位是小时，需要配置一个1或更大的整数，默认是0，表示不开启自动清理功能 |
-| syncEnabled                           |         | Observer写入日志和生成快照，这样可以减少Observer的恢复时间。默认为true。 |
+| preAllocSize                          | 64M     | 预先开辟磁盘空间，用于后续写入事务日志。默认是64M，每个事务日志大小就是64M。如果ZK的快照频率较大的话，建议适当减小这个参数。                                                      |
+| snapCount                             | 100,000 | 每进行snapCount次事务日志输出后，触发一次快照， 此时，Zookeeper会生成一个snapshot.*文件，同时创建一个新的事务日志文件log.*。默认是100,000.                              |
+| traceFile                             |         | 用于记录所有请求的log，一般调试过程中可以使用，但是生产环境不建议使用，会严重影响性能。                                                                           |
+| maxClientCnxns                        |         | 最大并发客户端数，用于防止DOS的，默认值是10，设置为0是不加限制                                                                                      |
+| clientPortAddress / maxSessionTimeout |         | 对于多网卡的机器，可以为每个IP指定不同的监听端口。默认情况是所有IP都监听 clientPort 指定的端口                                                                 |
+| minSessionTimeout                     |         | Session超时时间限制，如果客户端设置的超时时间不在这个范围，那么会被强制设置为最大或最小时间。默认的Session超时时间是在2 * tickTime ~ 20 * tickTime 这个范围                     |
+| fsync.warningthresholdms              | 1000    | 事务日志输出时，如果调用fsync方法超过指定的超时时间，那么会在日志中输出警告信息。默认是1000ms。                                                                   |
+| autopurge.snapRetainCount             |         | 参数指定了需要保留的事务日志和快照文件的数目。默认是保留3个。和autopurge.purgeInterval搭配使用                                                             |
+| autopurge.purgeInterval               |         | 在3.4.0及之后版本，Zookeeper提供了自动清理事务日志和快照文件的功能，这个参数指定了清理频率，单位是小时，需要配置一个1或更大的整数，默认是0，表示不开启自动清理功能                               |
+| syncEnabled                           |         | Observer写入日志和生成快照，这样可以减少Observer的恢复时间。默认为true。                                                                          |
 
 ### 集群安装
 Zookeeper集群中只要有过半的节点是正常的情况下,那么整个集群对外就是可用的。正是基于这个特性,要将 ZK 集群的节点数量要为奇数（2n+1），如 3、5、7 个节点)较为合适。
@@ -397,17 +397,17 @@ server.3=127.0.0.1:2888:3888
 
 ### zookeeper有关配置信息集群选项
 
-| 参数名                            | 默认 | 描述                                                         |
-| --------------------------------- | ---- | ------------------------------------------------------------ |
-| electionAlg                       |      | 之前的版本中， 这个参数配置是允许我们选择leader选举算法，但是由于在以后的版本中，只有“FastLeaderElection ”算法可用，所以这个参数目前看来没有用了。 |
-| initLimit                         | 10   | Observer和Follower启动时，从Leader同步最新数据时，Leader允许initLimit * tickTime的时间内完成。如果同步的数据量很大，可以相应的把这个值设置的大一些。 |
-| leaderServes                      | yes  | 默 认情况下，Leader是会接受客户端连接，并提供正常的读写服务。但是，如果你想让Leader专注于集群中机器的协调，那么可以将这个参数设置为 no，这样一来，会大大提高写操作的性能。一般机器数比较多的情况下可以设置为no，让Leader不接受客户端的连接。默认为yes |
-| server.x=[hostname]:nnnnn[:nnnnn] |      | “x”是一个数字，与每个服务器的myid文件中的id是一样的。hostname是服务器的hostname，右边配置两个端口，第一个端口用于Follower和Leader之间的数据同步和其它通信，第二个端口用于Leader选举过程中投票通信。 |
-| syncLimit                         |      | 表示Follower和Observer与Leader交互时的最大等待时间，只不过是在与leader同步完毕之后，进入正常请求转发或ping等消息交互时的超时时间。 |
-| group.x=nnnnn[:nnnnn]             |      | “x”是一个数字，与每个服务器的myid文件中的id是一样的。对机器分组，后面的参数是myid文件中的ID |
-| weight.x=nnnnn                    |      | “x”是一个数字，与每个服务器的myid文件中的id是一样的。机器的权重设置，后面的参数是权重值 |
-| cnxTimeout                        | 5s   | 选举过程中打开一次连接的超时时间，默认是5s                   |
-| standaloneEnabled                 |      | 当设置为false时，服务器在复制模式下启动                      |
+| 参数名                               | 默认  | 描述                                                                                                                                       |
+|-----------------------------------|-----|------------------------------------------------------------------------------------------------------------------------------------------|
+| electionAlg                       |     | 之前的版本中， 这个参数配置是允许我们选择leader选举算法，但是由于在以后的版本中，只有“FastLeaderElection ”算法可用，所以这个参数目前看来没有用了。                                                  |
+| initLimit                         | 10  | Observer和Follower启动时，从Leader同步最新数据时，Leader允许initLimit * tickTime的时间内完成。如果同步的数据量很大，可以相应的把这个值设置的大一些。                                       |
+| leaderServes                      | yes | 默 认情况下，Leader是会接受客户端连接，并提供正常的读写服务。但是，如果你想让Leader专注于集群中机器的协调，那么可以将这个参数设置为 no，这样一来，会大大提高写操作的性能。一般机器数比较多的情况下可以设置为no，让Leader不接受客户端的连接。默认为yes |
+| server.x=[hostname]:nnnnn[:nnnnn] |     | “x”是一个数字，与每个服务器的myid文件中的id是一样的。hostname是服务器的hostname，右边配置两个端口，第一个端口用于Follower和Leader之间的数据同步和其它通信，第二个端口用于Leader选举过程中投票通信。                 |
+| syncLimit                         |     | 表示Follower和Observer与Leader交互时的最大等待时间，只不过是在与leader同步完毕之后，进入正常请求转发或ping等消息交互时的超时时间。                                                        |
+| group.x=nnnnn[:nnnnn]             |     | “x”是一个数字，与每个服务器的myid文件中的id是一样的。对机器分组，后面的参数是myid文件中的ID                                                                                    |
+| weight.x=nnnnn                    |     | “x”是一个数字，与每个服务器的myid文件中的id是一样的。机器的权重设置，后面的参数是权重值                                                                                         |
+| cnxTimeout                        | 5s  | 选举过程中打开一次连接的超时时间，默认是5s                                                                                                                   |
+| standaloneEnabled                 |     | 当设置为false时，服务器在复制模式下启动                                                                                                                   |
 
 注意：
 zookeeper的启动日志在/bin目录下的zookeeper.out文件
@@ -438,29 +438,29 @@ server.3=127.0.0.1:2888:3888:observer #表示将该节点设置为观察者
 
 ### 服务器端指令
 
-| 指令                     | 说明               |
-| ------------------------ | ------------------ |
-| `sh zkServer.sh start`   | 启动服务器端       |
-| `sh zkServer.sh stop`    | 停止服务器端       |
-| `sh zkServer.sh restart` | 重启服务器端       |
+| 指令                       | 说明        |
+|--------------------------|-----------|
+| `sh zkServer.sh start`   | 启动服务器端    |
+| `sh zkServer.sh stop`    | 停止服务器端    |
+| `sh zkServer.sh restart` | 重启服务器端    |
 | `sh zkServer.sh status`  | 查看服务器端的状态 |
-| `sh zkCli.sh`            | 启动客户端         |
+| `sh zkCli.sh`            | 启动客户端     |
 
 ### 客户端指令
 
-| 命令                               | 解释                                                         |
-| ---------------------------------- | ------------------------------------------------------------ |
-| help                               | 帮助命令                                                     |
-| `quit`                             | 退出客户端                                                   |
-| `ls /`                             | 查看根路径下的节点                                           |
-| `create /log 'manage log servers'` | 在根节点下创建一个子节点log                                  |
-| `creat -e /node2 ''`               | 在根节点下创建临时节点node2，客户端关闭后会删除              |
-| `create -s /video ''`              | 在根节点下创建一个顺序节点`/video000000X`                    |
-| `creare -e -s /node4 ''`           | 创建一个临时顺序节点`/node4000000X`,客户端关闭后删除         |
-| `get /video`                       | 查看video节点的数据以及节点信息                              |
+| 命令                                 | 解释                                    |
+|------------------------------------|---------------------------------------|
+| help                               | 帮助命令                                  |
+| `quit`                             | 退出客户端                                 |
+| `ls /`                             | 查看根路径下的节点                             |
+| `create /log 'manage log servers'` | 在根节点下创建一个子节点log                       |
+| `creat -e /node2 ''`               | 在根节点下创建临时节点node2，客户端关闭后会删除            |
+| `create -s /video ''`              | 在根节点下创建一个顺序节点`/video000000X`          |
+| `creare -e -s /node4 ''`           | 创建一个临时顺序节点`/node4000000X`,客户端关闭后删除    |
+| `get /video`                       | 查看video节点的数据以及节点信息                    |
 | `delete /log`                      | 删除根节点下的子节点log<br />==要求被删除的节点下没有子节点== |
-| `rmr /video`                       | 递归删除                                                     |
-| `set /video 'videos'`              | 修改节点数据                                                 |
+| `rmr /video`                       | 递归删除                                  |
+| `set /video 'videos'`              | 修改节点数据                                |
 
 ### 常用四字命令
 

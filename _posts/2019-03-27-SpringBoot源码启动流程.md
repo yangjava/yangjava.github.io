@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
@@ -8,8 +8,15 @@ keywords: SpringBoot
 从源代码的角度来看看Spring Boot的启动过程到底是怎么样的
 
 
+## SpringBoot启动
+SpringBoot应用的启动过程。这个启动过程比较复杂，在此我只介绍核心的知识点。
+
+其启动过程大概分为两步。
+- 初始化SpringApplication对象
+- 执行SpringApplication对象的run方法
+
 ## 启动SpringBoot启动类
-运行 SpringApplication.run() 方法
+springboot的启动类入口如下所示：
 
 ```java
 @SpringBootApplication
@@ -21,6 +28,8 @@ public class Application {
     
 }
 ```
+从上面代码可以看出，Annotation定义（@SpringBootApplication）和类定义（SpringApplication.run）最为耀眼，所以要揭开SpringBoot的神秘面纱，我们要从这两位开始就可以了。
+
 
 进入源码**SpringApplication.run(Application.class, args);**
 
