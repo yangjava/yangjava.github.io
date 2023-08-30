@@ -104,43 +104,48 @@ class SimpleCacheConfiguration {
   @Override
 	@Nullable
 	public Cache getCache(String name) {
-    // 通过传入的name在map中查找对应的Cache对象
-		Cache cache = this.cacheMap.get(name);
-    // 如果查找结果为空，或者这个name在ConcurrentMap中不存在
-		if (cache == null && this.dynamic) {
-			synchronized (this.cacheMap) {
-				cache = this.cacheMap.get(name);
-				if (cache == null) {
-          // 那么就用线程安全的模式，按照传入的name创建一个ConcurrentMapCache实例
-					cache = createConcurrentMapCache(name);
-          // 然后通过Manager的Map属性将新建的cache与name管理起来
-					this.cacheMap.put(name, cache);
-				}
-			}
-		}
-    // 最终获取到cache并返回出去
-		return cache;
-    
-    
+      // 通过传入的name在map中查找对应的Cache对象
+      Cache cache = this.cacheMap.get(name);
+      // 如果查找结果为空，或者这个name在ConcurrentMap中不存在
+      if (cache == null && this.dynamic) {
+          synchronized (this.cacheMap) {
+              cache = this.cacheMap.get(name);
+              if (cache == null) {
+                  // 那么就用线程安全的模式，按照传入的name创建一个ConcurrentMapCache实例
+                  cache = createConcurrentMapCache(name);
+                  // 然后通过Manager的Map属性将新建的cache与name管理起来
+                  this.cacheMap.put(name, cache);
+              }
+          }
+      }
+      // 最终获取到cache并返回出去
+      return cache;
+
+
 //ConcurrentMapCache是默认返回的Cache类型，我们点进去看看
 //在Cache中，所有的缓存数据都是以(k,v)类型进行存储的，用一个Map store 属性进行维护
-public class ConcurrentMapCache extends AbstractValueAdaptingCache {
+      public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 
-  //获取缓存内容的方法
-  protected Object lookup(Object key) {
-		return this.store.get(key);
-	}
-  // 添加缓存内容的方法
- @Override
-	public void put(Object key, @Nullable Object value) {
-		this.store.put(key, toStoreValue(value));
-	}
-  // 删除缓存内容的方法
-  @Override
-  public void evict(Object key) {
-    this.store.remove(key);
+          //获取缓存内容的方法
+          protected Object lookup(Object key) {
+              return this.store.get(key);
+          }
+
+          // 添加缓存内容的方法
+          @Override
+          public void put(Object key, @Nullable Object value) {
+              this.store.put(key, toStoreValue(value));
+          }
+
+          // 删除缓存内容的方法
+          @Override
+          public void evict(Object key) {
+              this.store.remove(key);
+          }
+          // 最后可以在各个方法内打个断点试一试了，用@Cacheable注解，然后在浏览器中访问2次 分别查看代码走向
+      }
   }
-	// 最后可以在各个方法内打个断点试一试了，用@Cacheable注解，然后在浏览器中访问2次 分别查看代码走向
+  }}
 ```
 
 ，这个标签引入了
@@ -378,10 +383,10 @@ class EhCacheCacheConfiguration {
 ```
 这里会直接判断类路径下是否有ehcache.xml文件
 
+## redis key 采用 zset 存储过程
+自定义keyGenerator，使用 @Cacheable 进行缓存， redis 缓存采用 zset 结构进行存储
 
-
-
-
+RedisCacheMetadata 是 RedisCache 的内部类，创建过程发生在 RedisCache 构造方法中：
 
 
 

@@ -1,10 +1,10 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot配置热部署工具
+# SpringBoot热部署工具
 
 ## 什么是热部署和热加载？
 

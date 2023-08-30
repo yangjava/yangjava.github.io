@@ -1,6 +1,7 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
+# SpringBoot邮件消息

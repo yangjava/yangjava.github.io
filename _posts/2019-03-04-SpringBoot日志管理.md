@@ -1,11 +1,10 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
 # SpringBoot日志管理
-会当凌绝顶，一览众山小。——杜甫《望岳》
 在学习这块时需要一些日志框架的发展和基础，同时了解日志配置时考虑的因素。
 
 ## 配置时考虑点

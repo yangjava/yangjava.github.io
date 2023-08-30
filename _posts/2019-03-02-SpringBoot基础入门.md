@@ -1,11 +1,10 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
 # SpringBoot基础入门
-天生我材必有用，干金散尽还复来。  ——李白《将进酒》
 下面就让我们开始一个Hello World级别的项目吧。
 
 ## Maven依赖
@@ -92,7 +91,7 @@ public class Application {
 
 ```
 
-启动即可启动一个WEB服务，通过浏览器访问http://localhost:8080/hello, 并返回Hello world
+启动即可启动一个WEB服务，通过浏览器访问`http://localhost:8080/hello`, 并返回Hello world
 
 ## 服务启动日志
 ```
@@ -114,15 +113,15 @@ public class Application {
 ###  项目结构
 项目结构目录整体上符合maven规范要求：
 
-| 目录位置                                  | 功能                                                         |
-| ----------------------------------------- | ------------------------------------------------------------ |
-| src/main/java                             | 项目java文件存放位置，初始化包含主程序入口 XxxApplication，可以通过直接运行该类来 启动 Spring Boot应用 |
-| src/main/resources                        | 存放静态资源，图片、CSS、JavaScript、web页面模板文件等       |
-| src/test                                  | 单元测试代码目录                                             |
-| .gitignore                                | git版本管理排除文件                                          |
-| target文件夹                              | 项目代码构建打包结果文件存放位置，不需要人为维护             |
-| pom.xml                                   | maven项目配置文件                                            |
-| application.properties（application.yml） | 用于存放程序的各种依赖模块的配置信息，比如服务端口，数据库连接配置等 |
+| 目录位置                                    | 功能                                                                  |
+|-----------------------------------------|---------------------------------------------------------------------|
+| src/main/java                           | 项目java文件存放位置，初始化包含主程序入口 XxxApplication，可以通过直接运行该类来 启动 Spring Boot应用 |
+| src/main/resources                      | 存放静态资源，图片、CSS、JavaScript、web页面模板文件等                                 |
+| src/test                                | 单元测试代码目录                                                            |
+| .gitignore                              | git版本管理排除文件                                                         |
+| target文件夹                               | 项目代码构建打包结果文件存放位置，不需要人为维护                                            |
+| pom.xml                                 | maven项目配置文件                                                         |
+| application.properties（application.yml） | 用于存放程序的各种依赖模块的配置信息，比如服务端口，数据库连接配置等                                  |
 
 ### Maven依赖
 

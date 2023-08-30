@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: RocketMQ
+categories: [RocketMQ]
 description: none
 keywords: RocketMQ
 ---

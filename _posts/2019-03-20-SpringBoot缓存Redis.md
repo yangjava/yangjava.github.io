@@ -10,7 +10,7 @@ Spring Boot提供了对缓存的支持，可以与多种缓存器集成。其中
 ## 缓存Redis
 
 ### 导入依赖
-就只需要这一个依赖！不需要spring-boot-starter-cache
+导入SpringBoot自带的redis依赖。就只需要这一个依赖！不需要spring-boot-starter-cache
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
@@ -43,6 +43,19 @@ spring.redis.pool.min-idle=2 # 连接池中的最小空闲连接
 spring.redis.timeout=0 # 连接超时时间（毫秒）
 ```
 如果你的Redis这时候已经可以启动程序了。
+
+或者配置yml
+```
+spring:
+  redis:
+    host: 10.7.1.30
+    port: 6379
+    password: Qjd123456
+    database: 12
+    lettuce: 
+      pool:
+        max-active: 300
+```
 
 ## 添加缓存注解
 在需要缓存的类或方法上添加 @Cacheable 或 @CachePut 注解。例如：
@@ -334,3 +347,57 @@ public void test(){
     emp.put("111", "222");
 }
 ```
+
+## 基于API的Redis缓存实现
+在SpringBoot整合Redis缓存实现中，除了基于注解形式的Redis缓存形式外，还有一种开发中更常用的方式——基于API的Redis缓存实现。这种基于API的Redis缓存实现，需要在某种业务需求下通过Redis提供的API调用相关方法实现数据缓存管理。同时，这种方法还可以手动管理缓存的有效期。
+
+下面，通过Redis API的方式讲解SpringBoot整合Redis缓存的具体实现。
+
+通过RedisTemplate可以方便地操作redis服务器中的数据，Spring redis支持的存储类型和对应的操作方法如下：
+```
+@Autowired
+private RedisTemplate<Object,Object> redisTemplate;
+@Test
+public void saveDataTest() throws Exception {
+// 创建数据对象
+Map<String, Object> dataMap = new HashMap<>();
+dataMap.put("value", "yy");
+dataMap.put("time", LocalDateTime.now().format((DateTimeFormatter.ofPattern ("yyyy-MM-dd"))));
+// 存储数据
+redisTemplate.opsForValue().set("yy", dataMap);
+}
+```
+
+### 字符串（String）
+- 存储：redisTemplate.opsForValue().set(key, value)
+- 获取：redisTemplate.opsForValue().get(key)
+- 其他操作：如设置过期时间、自增等，可参考RedisTemplate中opsForValue()方法的其他操作。
+
+### 哈希（Hash）
+- 存储：redisTemplate.opsForHash().put(hash, field, value)
+- 获取：redisTemplate.opsForHash().get(hash, field)
+- 其他操作：如获取所有键值对、删除键值对等，可参考RedisTemplate中opsForHash()方法的其他操作。
+
+### 列表（List）
+- 存储：redisTemplate.opsForList().rightPush(listKey, value)/leftPush(listKey, value)
+- 获取：redisTemplate.opsForList().range(listKey, start, end)
+- 其他操作：如删除指定元素、根据下标获取元素、获取列表长度等，可参考RedisTemplate中opsForList()方法的其他操作。
+
+### 集合（Set）
+- 存储：redisTemplate.opsForSet().add(setKey, value)
+- 获取：redisTemplate.opsForSet().members(setKey)
+- 其他操作：如集合求交集、并集、差集等，可参考RedisTemplate中opsForSet()方法的其他操作。
+
+### 有序集合（Sorted Set）
+- 存储：redisTemplate.opsForZSet().add(zsetKey, value, score)
+- 获取：redisTemplate.opsForZSet().range(zsetKey, start, end)
+- 其他操作：如根据分数范围获取元素、获取有序集合长度等，可参考RedisTemplate中opsForZSet()方法的其他操作。
+
+基于API的Redis缓存实现的相关配置：基于API的Redis缓存实现不需要@EnableCaching注解开启基于注解的缓存支持，所以这里可以选择将添加在项目启动类上的@EnableCaching注解进行删除或者注释，不会影响项目的功能实现。
+
+
+
+
+
+
+

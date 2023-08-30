@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Spring
+categories: [Spring]
 description: none
 keywords: Spring
 ---

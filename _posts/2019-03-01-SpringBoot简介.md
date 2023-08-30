@@ -1,11 +1,10 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
 # SpringBoot简介
-盛年不重来，一日难再晨。及时当勉励，岁月不待人。  ——陶渊明·《杂诗》
 官网介绍：Spring Boot使创建独立的、基于生产级Spring的应用程序变得很容易，您可以“直接运行”这些应用程序。我们对Spring平台和第三方库有自己的见解，这样您就可以轻松入门了。大多数Spring引导应用程序只需要很少的Spring配置。
 
 **Spring Boot makes it easy to create stand-alone, production-grade Spring based Applications that you can "just run".**  
