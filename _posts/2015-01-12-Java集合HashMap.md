@@ -12,42 +12,6 @@ Java为数据结构中的映射定义了一个接口java.util.Map，此接口主
 
 HashMap是一个基于哈希表的Map接口实现类，它继承自AbstractMap类，实现了Map、Cloneable和Serializable接口。在Java中，哈希表是一种常用的数据结构，它可以快速地存储和查找数据。HashMap内部使用了一个数组来存储数据，每个数组元素都是一个链表，链表中存储了哈希值相同的键值对。
 
-下面针对各个实现类的特点做一些说明：
-### HashMap
-- 它根据键的hashCode值存储数据，大多数情况下可以直接定位到它的值，因而具有很快的访问速度，但遍历顺序却是不确定的。
-- HashMap 最多只允许一条记录的键为null，允许多条记录的值为null。
-- HashMap非线程安全，即任一时刻可以有多个线程同时写HashMap，可能会导致数据的不一致。
-- 如果需要满足线程安全 ，可以用：Collections的synchronizedMap方法使HashMap具有线程安全的能力， 或者使用ConcurrentHashMap。
-
-### Hashtable
-Hashtable是遗留类，很多映射的常用功能与HashMap类似，不同的是它承自Dictionary类，并且是 线程安全 的。 这个是老古董，Hashtable 不建议在代码中使用 ，
-
-不需要线程安全的场合可以用HashMap替换，需要线程安全的场合可以用ConcurrentHashMap替换。
-
-为何不建议用呢？ 任一时间只有一个线程能写Hashtable，并发性不如ConcurrentHashMap。后者使用了 分段保护机制，也就是 分而治之的思想。
-
-### LinkedHashMap
-LinkedHashMap是HashMap的一个子类，其优点在于： 保存了记录的插入顺序，在用Iterator遍历LinkedHashMap时， 先得到的记录肯定是先插入的 ，也可以在构造时带参数，按照访问次序排序。
-
-### TreeMap
-TreeMap实现SortedMap接口，能够把它保存的记录根据键排序， 默认是按键值的升序排序 ，也可以 指定排序的比较器 ，
-
-当用Iterator遍历TreeMap时，得到的记录是排过序的。 如果使用 排序的映射 ，建议使用TreeMap。 在使用TreeMap时， key必须实现Comparable接口 , 或者在构造TreeMap传入自定义的Comparator，
-
-否则会在运行时抛出java.lang.ClassCastException类型的异常。
-
-注意：
-对于上述四种Map类型的类，要求映射中的key是不可变的。 在创建内部的Entry后， key的哈希值不会被改变。为啥呢？
-
-如果对象的哈希值发生变化，Map对象很可能就定位不到映射的位置了。
-```
-static class Node<K,V> implements Map.Entry<K,V> {  
-        final int hash;  //key的哈希值不会被改变  
-        final K key; // 映射中的key是不可变的  
-        V value;  
-        Node<K,V> next;  
-```
-
 ## HashMap存储结构
 下文我们主要结合源码，从存储结构、常用方法分析、扩容以及安全性等方面深入讲解HashMap的工作原理。
 

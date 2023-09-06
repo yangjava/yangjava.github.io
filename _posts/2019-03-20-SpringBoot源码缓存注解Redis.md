@@ -698,3 +698,24 @@ DefaultRedisCacheWriter#put，判断是否需要过期时间。RedisCache的缓�
                 .build();
     }
 ```
+
+为每个缓存设置不同的过期时间
+```
+    @Bean
+    public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
+        RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(10)).
+                serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())).
+                serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
+
+        // 为每个缓存设置不同的过期时间
+        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+        cacheConfigurations.put("test", defaultCacheConfig.entryTtl(Duration.ofMinutes(10)));
+
+        return RedisCacheManager.builder(redisConnectionFactory)
+                .cacheDefaults(defaultCacheConfig)
+                .withInitialCacheConfigurations(cacheConfigurations)
+                .build();
+    }
+
+```

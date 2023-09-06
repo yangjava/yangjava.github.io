@@ -1,31 +1,66 @@
 ---
 layout: post
-categories: [JSON,Jackson]
+categories: [JSON]
 description: none
 keywords: Jackson
 ---
-# Jackson详解
+# JSON实战Jackson
 Jackson是一个`Java`语言编写的，可以进行`JSON`处理的开源工具库，`Jackson`的使用非常广泛，`Spring`框架默认使用`Jackson`进行 JSON 处理。
 
-## Jackson 介绍
-Jackson 有三个核心包，分别是 `Streaming`、`Databind`、`Annotations`，通过这些包可以方便的对 JSON 进行操作
-- `Streaming` 在 `jackson-core` 模块。定义了一些流处理相关的 API 以及特定的 JSON 实现
-- `Annotations` 在 `jackson-annotations` 模块，包含了 Jackson 中的注解
-- `Databind` 在 `jackson-databind` 模块， 在 Streaming 包的基础上实现了数据绑定，依赖于 Streaming 和 Annotations 包
-得益于 Jackson 高扩展性的设计，有很多常见的文本格式以及工具都有对 Jackson 的相应适配，如 CSV、XML、YAML 等
+## 简介
+Jackson 是当前用的比较广泛的，用来序列化和反序列化 json 的 Java 的开源框架。Jackson 社区相对比较活跃，更新速度也比较快， 从 Github 中的统计来看，Jackson 是最流行的 json 解析器之一 。
 
-## Maven 依赖
-在使用 Jackson 时，大多数情况下我们只需要添加`jackson-databind`依赖项，就可以使用 Jackson 功能了，它依赖了下面两个包`com.fasterxml.jackson.core:jackson-annotations`和`com.fasterxml.jackson.core:jackson-core`。
-Maven依赖如下：
-```xml
+Spring MVC 的默认 json 解析器便是 Jackson。 Jackson 优点很多。 Jackson 所依赖的 jar 包较少 ，简单易用。与其他 Java 的 json 的框架 Gson 等相比， Jackson 解析大的 json 文件速度比较快；Jackson 运行时占用内存比较低，性能比较好；Jackson 有灵活的 API，可以很容易进行扩展和定制。
+
+Jackson 的 1.x 版本的包名是 org.codehaus.jackson ，当升级到 2.x 版本时，包名变为 com.fasterxml.jackson。
+
+## 核心模块
+Jackson 的核心模块由三部分组成。
+
+- jackson-core，核心包
+提供基于"流模式"解析的相关 API，它包括 JsonPaser 和 JsonGenerator。 Jackson 内部实现正是通过高性能的流模式 API 的 JsonGenerator 和 JsonParser 来生成和解析 json。
+
+- jackson-annotations，注解包
+提供标准注解功能；
+
+- jackson-databind ，数据绑定包
+提供基于"对象绑定" 解析的相关 API （ ObjectMapper ） 和"树模型" 解析的相关 API （JsonNode）；基于"对象绑定" 解析的 API 和"树模型"解析的 API 依赖基于"流模式"解析的 API。
+
+## JSON实战Jackson
+
+### Maven 依赖
+使用Maven构建项目，需要添加依赖：
+```
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-core</artifactId>
+    <version>2.13.3</version>
+</dependency>
+        
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-annotations</artifactId>
+    <version>2.13.3</version>
+</dependency>
+        
 <dependency>
     <groupId>com.fasterxml.jackson.core</groupId>
     <artifactId>jackson-databind</artifactId>
     <version>2.13.3</version>
 </dependency>
 ```
-为了方便后续的代码演示，我们同时引入 Junit 进行单元测试和 Lombok 以减少 Get/Set 的代码编写
+当然了，jackson-databind 依赖 jackson-core 和 jackson-annotations，所以可以只显示地添加jackson-databind依赖，jackson-core 和 jackson-annotations 也随之添加到 Java 项目工程中。
+
 ```xml
+<dependency>
+  <groupId>com.fasterxml.jackson.core</groupId>
+  <artifactId>jackson-databind</artifactId>
+    <version>2.13.3</version>
+</dependency>
+```
+
+为了方便后续的代码演示，我们同时引入 Junit 进行单元测试和 Lombok 以减少 Get/Set 的代码编写
+```
 <dependency>
     <groupId>org.junit.jupiter</groupId>
     <artifactId>junit-jupiter</artifactId>
@@ -39,25 +74,29 @@ Maven依赖如下：
 </dependency>
 ```
 
-## ObjectMapper 对象映射器
-`ObjectMapper`是 Jackson 库中最常用的一个类，使用它可以进行 Java 对象和 JSON 字符串之间快速转换。如果你用过`FastJson`，那么 Jackson 中的 ObjectMapper 就如同 FastJson 中的 JSON 类
-这个类中有一些常用的方法
-- readValue() 方法可以进行 JSON 的反序列化操作，比如可以将字符串、文件流、字节流、字节数组等将常见的内容转换成 Java 对象
-- writeValue() 方法可以进行 JSON 的序列化操作，可以将 Java 对象转换成 JSON 字符串
-大多数情况下，ObjectMapper 的工作原理是通过 Java Bean 对象的 Get/Set 方法进行转换时映射的，所以正确编写 Java 对象的 Get/Set 方法尤为重要，不过 ObjectMapper 也提供了诸多配置，比如可以通过配置或者注解的形式对 Java 对象和 JSON 字符串之间的转换过程进行自定义。
-
-## Jackson JSON 的基本操作
 `Jackson`作为一个 Java 中的 JSON 工具库，处理 JSON 字符串和 Java 对象是它最基本最常用的功能，下面通过一些例子来演示其中的用法
 
-**Jackson JSON 的序列化**
+## Jackson用法
 
+### ObjectMapper
+Jackson 最常用的 API 就是基于"对象绑定" 的 ObjectMapper：
+
+- ObjectMapper可以从字符串，流或文件中解析JSON，并创建表示已解析的JSON的Java对象。 将JSON解析为Java对象也称为从JSON反序列化Java对象。
+- ObjectMapper也可以从Java对象创建JSON。 从Java对象生成JSON也称为将Java对象序列化为JSON。
+- Object映射器可以将JSON解析为自定义的类的对象，也可以解析置JSON树模型的对象。
+
+之所以称为ObjectMapper是因为它将JSON映射到Java对象（反序列化），或者将Java对象映射到JSON（序列化）。
+
+## 示例
 编写一个 Person 类，定义三个属性，名称、年龄以及技能
 ```java
 @Data
 public class Person {
-
+    // 名称
     private String name;
+    // 年龄
     private Integer age;
+    // 技能
     private List<String> skillList;
 }
 ```

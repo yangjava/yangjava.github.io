@@ -1,24 +1,17 @@
 ---
 layout: post
-categories: Mybatis
+categories: [Mybatis]
 description: none
 keywords: Mybatis
 ---
-
-
-
+# Mybatis源码创建SqlSession
 
 ## 创建SqlSession
-
-前面的两篇文章我们已经得到了`SqlSessionFactory`，那么`SqlSession`将由`SqlSessionFactory`进行创建。
-
+我们已经得到了`SqlSessionFactory`，那么`SqlSession`将由`SqlSessionFactory`进行创建。
 ```
 SqlSession sqlSession=sqlSessionFactory.openSession();
 ```
-
 我们就来看看这个`SqlSessionFactory`的 `openSession`方法是如何创建SqlSession对象的。根据上面的分析，这里的`SqlSessionFactory`类型对象其实是一个`DefaultSqlSessionFactory`对象，因此，需要到`DefaultSqlSessionFactory`类中去看`openSession`方法。
-
-
 
 ```
   @Override
@@ -27,15 +20,10 @@ SqlSession sqlSession=sqlSessionFactory.openSession();
   }
 ```
 
-
-
 调用了**openSessionFromDataSource**方法，并且第一个参数获取了默认的执行器类型，第二个参数为null,第三个参数为false,看看这个默认的执行器类型是啥
 
-![img](https://img2018.cnblogs.com/blog/1168971/201910/1168971-20191028105214615-2132752424.png) ![img](https://img2018.cnblogs.com/blog/1168971/201910/1168971-20191028110352230-347735037.png)
 
 默认的执行器类型SIMPLE，我们跟进**openSessionFromDataSource**方法
-
-
 
 ```
 /**
@@ -65,21 +53,14 @@ private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionI
     }
 }
 ```
-
-
-
 主要包含以下几个步骤：
-
-1. 首先从configuration获取Environment对象，里面主要包含了DataSource和TransactionFactory对象
-2. 创建TransactionFactory
-3. 创建Transaction
-4. 从configuration获取Executor
-5. 构造DefaultSqlSession对象
+- 首先从configuration获取Environment对象，里面主要包含了DataSource和TransactionFactory对象 
+- 创建TransactionFactory
+- 创建Transaction
+- 从configuration获取Executor
+- 构造DefaultSqlSession对象
 
 我们先来看看常规的environment配置
-
-
-
 ```
 //配置environment环境
 <environments default="development">
@@ -105,12 +86,6 @@ private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionI
     </environment>
 </environments>
 ```
-
-
-
-还记得前面文章是怎么解析environments的吗，[Mybaits 源码解析 （二）----- 根据配置文件创建SqlSessionFactory（Configuration的创建过程）](https://www.cnblogs.com/java-chen-hao/p/11743430.html)，我们简单的回顾一下
-
-
 
 ```
 private void environmentsElement(XNode context) throws Exception {

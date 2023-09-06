@@ -1,27 +1,39 @@
 ---
 layout: post
-categories: Mybatis
+categories: [Mybatis]
 description: none
 keywords: Mybatis
 ---
-
-
-# [Mybaits 源码解析 （三）----- Mapper映射的解析过程](https://www.cnblogs.com/java-chen-hao/p/11743442.html)
-
-**正文**
-
-上一篇我们讲解到mapperElement方法用来解析mapper，我们这篇文章具体来看看mapper.xml的解析过程
+# Mybatis源码Mapper解析
+精彩的是最后一个对于mappers标签的解析，也就是对于我们写的Mapper接口进行解析
 
 ## mappers配置方式
-
 mappers 标签下有许多 mapper 标签，每一个 mapper 标签中配置的都是一个独立的映射配置文件的路径，配置方式有以下几种。
 
+Mybatis中支持的四种映射器的配置方法：
+```
+使用映射器接口实现类的完全限定类名
+<mappers> 
+ <mapper class="org.mybatis.builder.AuthorMapper"/>
+</mappers>
 
+使用相对于类路径的资源引用：
+<mappers>
+  <mapper resource="org/mybatis/builder/AuthorMapper.xml"/>  
+</mappers>
 
-### 接口信息进行配置
+使用完全限定资源定位符（URL）
+<mappers> 
+ <mapper url="file:///var/mappers/AuthorMapper.xml"/> 
+</mappers>
 
+将包内的映射器接口实现全部注册为映射器
+<mappers>
+  <package name="org.mybatis.builder"/>
+</mappers>
+```
 
-
+- 接口信息进行配置
 ```
 <mappers>
     <mapper class="org.mybatis.mappers.UserMapper"/>
@@ -29,15 +41,9 @@ mappers 标签下有许多 mapper 标签，每一个 mapper 标签中配置的�
     <mapper class="org.mybatis.mappers.ManagerMapper"/>
 </mappers>
 ```
+注意：这种方式必须保证接口名（例如UserMapper）和xml名（UserMapper.xml）相同，还必须在同一个包中。因为是通过获取mapper中的class属性，拼接上.xml来读取UserMapper.xml，如果xml文件名不同或者不在同一个包中是无法读取到xml的。
 
-**注意：**这种方式必须保证接口名（例如UserMapper）和xml名（UserMapper.xml）相同，还必须在同一个包中。因为是通过获取mapper中的class属性，拼接上.xml来读取UserMapper.xml，如果xml文件名不同或者不在同一个包中是无法读取到xml的。
-
-
-
-### 相对路径进行配置
-
-
-
+- 相对路径进行配置
 ```
 <mappers>
     <mapper resource="org/mybatis/mappers/UserMapper.xml"/>
@@ -45,17 +51,9 @@ mappers 标签下有许多 mapper 标签，每一个 mapper 标签中配置的�
     <mapper resource="org/mybatis/mappers/ManagerMapper.xml"/>
 </mappers>
 ```
+注意：这种方式不用保证同接口同包同名。但是要保证xml中的namespase和对应的接口名相同。
 
-
-
-**注意：**这种方式不用保证同接口同包同名。但是要保证xml中的namespase和对应的接口名相同。
-
-
-
-### 绝对路径进行配置
-
-
-
+- 绝对路径进行配置
 ```
 <mappers>
     <mapper url="file:///var/mappers/UserMapper.xml"/>
@@ -64,75 +62,71 @@ mappers 标签下有许多 mapper 标签，每一个 mapper 标签中配置的�
 </mappers>
 ```
 
-
-
-### 接口所在包进行配置
-
+- 接口所在包进行配置
 ```
 <mappers>
     <package name="org.mybatis.mappers"/>
 </mappers>
 ```
-
 这种方式和第一种方式要求一致，保证接口名（例如UserMapper）和xml名（UserMapper.xml）相同，还必须在同一个包中。
 
-**注意：**以上所有的配置都要保证xml中的namespase和对应的接口名相同。
+注意：以上所有的配置都要保证xml中的namespase和对应的接口名相同。
 
-我们以packae属性为例详细分析一下:
+我们以package属性为例详细分析一下:
 
 ## mappers解析入口方法
+在mapperElement方法中，我们也能看到对官方文档中所说的四种配置映射器的方法的分别解析过程
 
-接上一篇文章最后部分，我们来看看mapperElement方法：
-
+再来看看源码中对着四种方法的解析过程：
 ```
 private void mapperElement(XNode parent) throws Exception {
     if (parent != null) {
-        for (XNode child : parent.getChildren()) {
-            //包扫描的形式
-            if ("package".equals(child.getName())) {
-                // 获取 <package> 节点中的 name 属性
-                String mapperPackage = child.getStringAttribute("name");
-                // 从指定包中查找 所有的 mapper 接口，并根据 mapper 接口解析映射配置
-                configuration.addMappers(mapperPackage);
-            } else {
-                // 获取 resource/url/class 等属性
-                String resource = child.getStringAttribute("resource");
-                String url = child.getStringAttribute("url");
-                String mapperClass = child.getStringAttribute("class");
-
-                // resource 不为空，且其他两者为空，则从指定路径中加载配置
-                if (resource != null && url == null && mapperClass == null) {
-                    ErrorContext.instance().resource(resource);
-                    InputStream inputStream = Resources.getResourceAsStream(resource);
-                    XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
-                    // 解析映射文件
-                    mapperParser.parse();
-                // url 不为空，且其他两者为空，则通过 url 加载配置
-                } else if (resource == null && url != null && mapperClass == null) {
-                    ErrorContext.instance().resource(url);
-                    InputStream inputStream = Resources.getUrlAsStream(url);
-                    XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
-                    // 解析映射文件
-                    mapperParser.parse();
-                // mapperClass 不为空，且其他两者为空，则通过 mapperClass 解析映射配置
-                } else if (resource == null && url == null && mapperClass != null) {
-                    Class<?> mapperInterface = Resources.classForName(mapperClass);
-                    configuration.addMapper(mapperInterface);
-                } else {
-                    throw new BuilderException("A mapper element may only specify a url, resource or class, but not more than one.");
-                }
-            }
+      for (XNode child : parent.getChildren()) {
+        // 类型一：将包内的映射器接口实现全部注册为映射器
+        if ("package".equals(child.getName())) {
+          // 获取 <package> 节点中的 name 属性
+          String mapperPackage = child.getStringAttribute("name");
+          // 从指定包中查找 所有的 mapper 接口，并根据 mapper 接口解析映射配置
+          configuration.addMappers(mapperPackage);
+        } else {
+          String resource = child.getStringAttribute("resource");
+          String url = child.getStringAttribute("url");
+          String mapperClass = child.getStringAttribute("class");
+          if (resource != null && url == null && mapperClass == null) {
+            // 类型二：使用相对于类路径的资源引用
+            ErrorContext.instance().resource(resource);
+            InputStream inputStream = Resources.getResourceAsStream(resource);
+            XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
+            mapperParser.parse();
+            // resource 不为空，且其他两者为空，则从指定路径中加载配置
+          } else if (resource == null && url != null && mapperClass == null) {
+            // 类型三：使用完全限定资源定位符（URL）
+            ErrorContext.instance().resource(url);
+            InputStream inputStream = Resources.getUrlAsStream(url);
+            XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
+            mapperParser.parse();
+          } else if (resource == null && url == null && mapperClass != null) {
+            // 类型四：使用映射器接口实现类的完全限定类名
+            Class<?> mapperInterface = Resources.classForName(mapperClass);
+            configuration.addMapper(mapperInterface);
+          } else {
+            throw new BuilderException("A mapper element may only specify a url, resource or class, but not more than one.");
+          }
         }
+      }
     }
-}
+  }
 ```
-
-
-
 在 MyBatis 中，共有四种加载映射文件或信息的方式。第一种是从文件系统中加载映射文件；第二种是通过 URL 的方式加载和解析映射文件；第三种是通过 mapper 接口加载映射信息，映射信息可以配置在注解中，也可以配置在映射文件中。最后一种是通过包扫描的方式获取到某个包下的所有类，并使用第三种方式为每个类解析映射信息。
 
-我们先看下以packae扫描的形式，看下configuration.addMappers(mapperPackage)方法
+虽然有四种配置方式，但这也仅仅是对外的四种方式，最终我们还是要拿到所有的映射器的Class对象，然后执行循环遍历执行mapperRegistry.addMapper(Class<T> type)方法。
 
+## configuration.addMappers()
+configuration.addMappers() 该方法中主要干了两件事：
+- 为映射器Mapper创建了一个映射器代理工厂MapperProxyFactory，并存储起来，我们都知道mybatis底层是基于jdk动态代理的方式的，而这个代理工厂就是为了后面执行时生成MapperProxy的代理对象；
+- Mybatis开始解析对应的XxxMapper.xml文件。
+
+我们先看下以package扫描的形式，看下configuration.addMappers(mapperPackage)方法
 ```
 public void addMappers(String packageName) {
     mapperRegistry.addMappers(packageName);
@@ -140,9 +134,6 @@ public void addMappers(String packageName) {
 ```
 
 我们看一下MapperRegistry的addMappers方法:
-
-
-
 ```
  1 public void addMappers(String packageName) {
  2     //传入包名和Object.class类型

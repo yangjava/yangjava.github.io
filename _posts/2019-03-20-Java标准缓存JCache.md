@@ -2,7 +2,7 @@
 layout: post
 categories: [Cache]
 description: none
-keywords: Caffeine
+keywords: JCache
 ---
 # Java标准缓存JCache
 JCache是Java的标准缓存API。

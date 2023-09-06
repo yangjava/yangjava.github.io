@@ -395,7 +395,58 @@ redisTemplate.opsForValue().set("yy", dataMap);
 
 基于API的Redis缓存实现的相关配置：基于API的Redis缓存实现不需要@EnableCaching注解开启基于注解的缓存支持，所以这里可以选择将添加在项目启动类上的@EnableCaching注解进行删除或者注释，不会影响项目的功能实现。
 
+## 通用的Redis缓存监控
+```
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+
+@Component
+@Slf4j
+public class RedisService {
+
+    @Resource
+    RedisTemplate<String,Object> redisTemplate;
+
+    @Value("${prefix:prefix:}")
+    private String prefix;
+
+    /**
+     * 加载Redis缓存
+     *
+     * @param callable 执行方法
+     * @param key      缓存Key
+     * @param timeout  缓存时间
+     * @param <V>
+     * @return 返回结果
+     * @throws Exception
+     */
+    public <V> V load(String businessType,String key, long timeout,Callable<V> callable) {
+        String redisKey = prefix +businessType+":"+key; 
+        log.info("缓存:{}",redisKey);
+        V object = (V) redisTemplate.opsForValue().get(redisKey);
+        if (null != object) {
+            log.info("命中缓存:{}",redisKey);
+            return object;
+        } else {
+            try {
+                V result = callable.call();
+                redisTemplate.opsForValue().set(redisKey, result, timeout, TimeUnit.SECONDS);
+                return result;
+            } catch (Exception e) {
+                log.error("redis load redisKey:{}", redisKey,e);
+                throw new RuntimeException(e);
+            }
+
+        }
+    }
+}
+```
 
 
 

@@ -172,7 +172,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:127.0.0.1:11800}
 
 ### 加入@Tags或@Tag
 我们还可以为追踪链路增加其他额外的信息，比如记录参数和返回信息。实现方式：在方法上增加@Tag或者@Tags。@Tag 注解中 key = 方法名 ；value = returnedObj 返回值 arg[0] 参数
-```java
+```
     @Trace  
     @Tag(key = "list", value = "returnedObj")  
     public List<User> list(){  

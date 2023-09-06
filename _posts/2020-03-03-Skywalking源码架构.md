@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Skywalking
+categories: [Skywalking]
 description: none
 keywords: Skywalking
 ---

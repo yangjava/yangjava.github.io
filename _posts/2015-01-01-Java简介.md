@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Java
+categories: [Java]
 description: none
 keywords: Java
 ---

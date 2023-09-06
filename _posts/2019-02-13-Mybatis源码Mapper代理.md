@@ -1,68 +1,52 @@
 ---
 layout: post
-categories: Mybatis
+categories: [Mybatis]
 description: none
 keywords: Mybatis
 ---
 # Mybatis源码创建Mapper代理
-
-
-**正文**
-
 刚开始使用Mybaits的同学有没有这样的疑惑，为什么我们没有编写Mapper的实现类，却能调用Mapper的方法呢？本篇文章我带大家一起来解决这个疑问
 
-上一篇文章我们获取到了DefaultSqlSession，接着我们来看第一篇文章测试用例后面的代码
-
-```
-EmployeeMapper employeeMapper = sqlSession.getMapper(EmployeeMapper.class);
-List<Employee> allEmployees = employeeMapper.getAll();
-```
-
-
-
 ## 为 Mapper 接口创建代理对象
-
 我们先从 DefaultSqlSession 的 getMapper 方法开始看起，如下：
-
-
-
 ```
- 1 public <T> T getMapper(Class<T> type) {
- 2     return configuration.<T>getMapper(type, this);
- 3 }
- 4 
- 5 // Configuration
- 6 public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
- 7     return mapperRegistry.getMapper(type, sqlSession);
- 8 }
- 9 
-10 // MapperRegistry
-11 public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
-12     // 从 knownMappers 中获取与 type 对应的 MapperProxyFactory
-13     final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
-14     if (mapperProxyFactory == null) {
-15         throw new BindingException("Type " + type + " is not known to the MapperRegistry.");
-16     }
-17     try {
-18         // 创建代理对象
-19         return mapperProxyFactory.newInstance(sqlSession);
-20     } catch (Exception e) {
-21         throw new BindingException("Error getting mapper instance. Cause: " + e, e);
-22     }
-23 }
+ public <T> T getMapper(Class<T> type) {
+     return configuration.<T>getMapper(type, this);
+ }
+ 
+ // Configuration
+ public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+     return mapperRegistry.getMapper(type, sqlSession);
+ }
+ 
+ // MapperRegistry
+ public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+     // 从 knownMappers 中获取与 type 对应的 MapperProxyFactory
+     final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
+     if (mapperProxyFactory == null) {
+         throw new BindingException("Type " + type + " is not known to the MapperRegistry.");
+     }
+     try {
+         // 创建代理对象
+         return mapperProxyFactory.newInstance(sqlSession);
+     } catch (Exception e) {
+         throw new BindingException("Error getting mapper instance. Cause: " + e, e);
+     }
+ }
+```
+这里最重要就是以下代码，我们接下来就分析
+```
+     // 从 knownMappers 中获取与 type 对应的 MapperProxyFactory
+     final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
+```
+和
+```
+         // 创建代理对象
+         return mapperProxyFactory.newInstance(sqlSession);
 ```
 
-
-
-这里最重要就是两行代码，第13行和第19行，我们接下来就分析这两行代码
-
-
-
-### **获取MapperProxyFactory**
-
+## 获取MapperProxyFactory
 根据名称看，可以理解为Mapper代理的创建工厂，是不是Mapper的代理对象由它创建呢？我们先来回顾一下knownMappers 集合中的元素是何时存入的。这要在我前面的文章中找答案，MyBatis 在解析配置文件的 <mappers> 节点的过程中，会调用 MapperRegistry 的 addMapper 方法将 Class 到 MapperProxyFactory 对象的映射关系存入到 knownMappers。有兴趣的同学可以看看我之前的文章，我们来回顾一下源码：
-
-
 
 ```
 private void bindMapperForNamespace() {

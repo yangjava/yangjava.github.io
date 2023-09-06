@@ -199,10 +199,62 @@ Spring Boot 在进行实体类扫描时，会从 @EnableAutoConfiguration 注解
 
 在 Spring Boot 应用程序中，入口类只是一个用来引导应用程序的类，而真正的自动配置和功能开启是通过 @SpringBootApplication 和 @EnableAutoConfiguration 注解所用的其他类完成的。
 
+## @ComponentScan自定义过滤规则
+自定义过滤规则类
 
+此处只有在类上标注了@controller注解的类才会被扫描加入到容器中
+```
+public class CustomFilterType implements TypeFilter {
+    /**
+     *
+     * @param metadataReader 扫描的当前类的元数据信息
+     * @param metadataReaderFactory 获取其他类的信息
+     * @return
+     * @throws IOException
+     */
+    public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
+        //获取当前类注解信息
+        AnnotationMetadata annotationMetadata = metadataReader.getAnnotationMetadata();
+        //获取当前类的类信息
+        ClassMetadata classMetadata = metadataReader.getClassMetadata();
+        //类路径
+        Resource resource = metadataReader.getResource();
+        //打印扫描到的类
+        System.out.println("被扫描到的类：" + classMetadata.getClassName());
+        //true 代表通过
+        if (annotationMetadata.getAnnotationTypes().contains(Controller.class.getCanonicalName()))
+            return true;
+        return false;
+    }
+}
+```
 
+定义一个配置类
+在此类中主要是定义扫描那些包，然后在利用上刚刚定义的顾虑规则类
+```
+@Configuration
+@ComponentScan(basePackages = {"com.demo"}, includeFilters = {
+        @ComponentScan.Filter(type = FilterType.CUSTOM, classes = {CustomFilterType.class})
+}, useDefaultFilters = false)
+public class MyConfiguration {
+}
+```
 
+在 Spring Boot 中，可以使用 @ComponentScan 注解的 excludeFilters 属性来排除指定的 Bean。
 
+你可以在启动类或配置类上添加 @ComponentScan 注解，并设置 excludeFilters 属性为一个数组，用于指定要排除的 Bean。以下是一个示例：
+```
+@SpringBootApplication
+@ComponentScan(excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, value = MyBean.class))
+public class MyApplication {
 
+    public static void main(String[] args) {
+        SpringApplication.run(MyApplication.class, args);
+    }
+}
+```
+在上述示例中，@ComponentScan 注解的 excludeFilters 属性被设置为排除类型为 MyBean.class 的 Bean。这意味着 MyBean 类及其相关的 Bean 将不会被扫描和创建。
 
+你还可以使用其他过滤器类型来排除 Bean，例如 FilterType.REGEX、FilterType.ASPECTJ、FilterType.CUSTOM 等，具体取决于过滤条件的类型和复杂性。
 
+使用 @ComponentScan 注解的 excludeFilters 属性是一种简单而灵活的方法，可以在应用程序启动时排除指定的 Bean，适用于任何组件扫描的场景。
