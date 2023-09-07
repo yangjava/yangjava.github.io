@@ -59,6 +59,7 @@ public class PluginBootstrap {
     // 加载所有的插件
     public List<AbstractClassEnhancePluginDefine> loadPlugins() throws AgentPackageNotFoundException {
         // 初始化类加载器。资源隔离，不同的classLoader具有不同的classpath，避免乱加载
+        // 初始化自定义类加载器AgentClassLoader
         AgentClassLoader.initDefaultLoader();
         // 获取各插件包下的skywalking-plugin.def配置文件
         PluginResourcesResolver resolver = new PluginResourcesResolver();
@@ -91,7 +92,7 @@ public class PluginBootstrap {
                 LOGGER.error(t, "load plugin [{}] failure.", pluginDefine.getDefineClass());
             }
         }
-        // 加载所有的插件
+        // 加载所有的插件 加载基于xml定义的插件
         plugins.addAll(DynamicPluginLoader.INSTANCE.load(AgentClassLoader.getDefault()));
 
         return plugins;
@@ -102,8 +103,14 @@ public class PluginBootstrap {
 ```
 加载所有插件流程如下：
 - 初始化AgentClassLoader，隔离资源，不同的classLoader具有不同的classpath，避免乱加载
+- 调用PluginResourcesResolver的getResources()方法
+- 遍历skywalking-plugin.def的资源，调用PluginCfg的load()方法
+- 通过AgentClassLoader实例化插件定义类实例
+- 由于SkyWalking Agent支持通过xml定义插件，代码4)处会加载基于xml定义的插件
 
 ### 初始化AgentClassLoader
+插件加载的第一步会去初始化自定义类加载器AgentClassLoader，所以我们先来看到AgentClassLoader的源码
+
 初始化AgentClassLoader使用AgentClassLoader.initDefaultLoader()，源码如下
 ```
 /**
@@ -144,8 +151,19 @@ public static List<String> MOUNT = Arrays.asList("plugins", "activations");
 - activations
 是对一些支持框架，比如日志、openTracing等工具。
 
+### 类加载器的并行加载模式
+AgentClassLoader的静态代码块里调用ClassLoader的registerAsParallelCapable()方法
+
 AgentClassLoader中最开始有一个registerAsParallelCapable 的static方法。 用来尝试解决classloader死锁。https://github.com/apache/skywalking/pull/2016
 ```
+自定义类加载器,负责查找插件和拦截器
+/**
+ * The <code>AgentClassLoader</code> represents a classloader, which is in charge of finding plugins and interceptors.
+ * 自定义类加载器,负责查找插件和拦截器
+ */
+public class AgentClassLoader extends ClassLoader {
+
+  // 为了解决ClassLoader死锁问题,开启类加载器的并行加载模式 
  static {
         registerAsParallelCapable();
     }
@@ -165,8 +183,155 @@ static boolean register(Class<? extends ClassLoader> c) {
     }
 }
 ```
+先说下，什么是具备并行能力的类加载器？
 
+在JDK 1.7之前，类加载器在加载类的时候是串行加载的，比如有100个类需要加载，那么就排队，加载完上一个再加载下一个，这样加载效率就很低
+
+在JDK 1.7之后，就提供了类加载器并行能力，就是把锁的粒度变小，之前ClassLoader加载类的时候加锁的时候是用自身作为锁的
+
+接下来我们一起来看ClassLoader的registerAsParallelCapable()方法源码：
+```
+public abstract class ClassLoader {
+
+    /**
+     * 将调用该方法的类加载器注册为具备并行能力的
+     * 同时满足以下两个条件时,注册才会成功
+     * 1.调用该方法的类加载器实例还未创建
+     * 2.调用该方法的类加载器所有父类(Object类除外)都注册为具备并行能力的
+     */
+    @CallerSensitive
+    protected static boolean registerAsParallelCapable() {
+      	// 把调用该方法的Class对象转换为ClassLoader的子类
+        Class<? extends ClassLoader> callerClass =
+                Reflection.getCallerClass().asSubclass(ClassLoader.class);
+      	// 注册为具备并行能力的
+        return ParallelLoaders.register(callerClass);
+    }
+
+    private static class ParallelLoaders {
+        private ParallelLoaders() {}
+
+        // loaderTypes中保存了所有具备并行能力的类加载器
+        private static final Set<Class<? extends ClassLoader>> loaderTypes =
+                Collections.newSetFromMap(new WeakHashMap<>());
+        static {
+            // ClassLoader本身就是支持并行加载的
+            synchronized (loaderTypes) { loaderTypes.add(ClassLoader.class); }
+        }
+
+        static boolean register(Class<? extends ClassLoader> c) {
+            synchronized (loaderTypes) {
+                // 当且仅当该类加载器的所有父类都具备并行能力时,该类加载器才能被注册成功
+                if (loaderTypes.contains(c.getSuperclass())) {
+                    loaderTypes.add(c);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        /**
+         * 判定给定的类加载器是否具备并行能力
+         */
+        static boolean isRegistered(Class<? extends ClassLoader> c) {
+            synchronized (loaderTypes) {
+                return loaderTypes.contains(c);
+            }
+        }
+
+```
+并行加载的实现我们一起来看下ClassLoader的loadClass()方法源码：
+```
+public abstract class ClassLoader {
+  
+  	private final ConcurrentHashMap<String, Object> parallelLockMap;
+
+    private ClassLoader(Void unused, String name, ClassLoader parent) {
+        this.name = name;
+        this.parent = parent;
+        this.unnamedModule = new Module(this);
+      	// 判断当前类加载器是否具备并行能力,如果具备则对parallelLockMap进行初始化
+        if (ParallelLoaders.isRegistered(this.getClass())) {
+            parallelLockMap = new ConcurrentHashMap<>();
+            package2certs = new ConcurrentHashMap<>();
+            assertionLock = new Object();
+        } else {
+            // no finer-grained lock; lock on the classloader instance
+            parallelLockMap = null;
+            package2certs = new Hashtable<>();
+            assertionLock = this;
+        }
+        this.nameAndId = nameAndId(this);
+    }
+  
+    protected Class<?> loadClass(String name, boolean resolve)
+        throws ClassNotFoundException
+    {
+      	// 加锁,调用getClassLoadingLock方法获取类加载时的锁
+        synchronized (getClassLoadingLock(name)) {
+            // First, check if the class has already been loaded
+            Class<?> c = findLoadedClass(name);
+            if (c == null) {
+                long t0 = System.nanoTime();
+                try {
+                    if (parent != null) {
+                        c = parent.loadClass(name, false);
+                    } else {
+                        c = findBootstrapClassOrNull(name);
+                    }
+                } catch (ClassNotFoundException e) {
+                    // ClassNotFoundException thrown if class not found
+                    // from the non-null parent class loader
+                }
+
+                if (c == null) {
+                    // If still not found, then invoke findClass in order
+                    // to find the class.
+                    long t1 = System.nanoTime();
+                    c = findClass(name);
+
+                    // this is the defining class loader; record the stats
+                    PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                    PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                    PerfCounter.getFindClasses().increment();
+                }
+            }
+            if (resolve) {
+                resolveClass(c);
+            }
+            return c;
+        }
+    }
+ 
+    protected Object getClassLoadingLock(String className) {
+      	// 默认锁是自身
+        Object lock = this;
+        if (parallelLockMap != null) {
+            Object newLock = new Object();
+          	// k:要加载的类名 v:新的锁
+            lock = parallelLockMap.putIfAbsent(className, newLock);
+          	// 如果是第一次put,则返回newLock
+            if (lock == null) {
+                lock = newLock;
+            }
+        }
+        return lock;
+    }  
+
+```
+并行加载的原理：
+
+如果当前类加载器是支持并行加载的，就把加载类时锁的粒度降低到加载的具体的某一个类上，而不是锁掉整个类加载器
+
+## AgentClassLoader源码解析
 使用类加载器，需要重写findClas方法AgentClassLoader.findClass
+
+除了并行类加载外，AgentClassLoader的几个关键点：
+
+- AgentClassLoader的父类加载器是AppClassLoader
+- AgentClassLoader的classpath默认是agent主目录下的plugins和activations目录
+- 如果被加载的类标注了@PluginConfig注解，会加载插件的配置
 
 将所有的jar包加载到内存中，做一个缓存。然后根据不同的class文件名，从缓存中提取文件。
 ```
@@ -253,6 +418,7 @@ public class PluginResourcesResolver {
     }
 }
 ```
+
 skywalking-plugin.def文件定义了插件的切入点。例如Spring的配置文件 `skywalking-plugin.def` 
 ```
 spring-core-patch=org.apache.skywalking.apm.plugin.spring.patch.define.AopProxyFactoryInstrumentation
@@ -299,6 +465,7 @@ public enum PluginCfg {
                     LOGGER.error(e, "Failed to format plugin({}) define.", pluginDefine);
                 }
             }
+            // 剔除配置文件中指定的不需要启用的插件
             pluginClassList = pluginSelector.select(pluginClassList);
         } finally {
             input.close();
@@ -311,6 +478,7 @@ public enum PluginCfg {
 
 }
 ```
+
 对于某些不需要增强的类，可以通过插件排除器进行解决，排除器配置在Skywalking配置为文件中。代码如下
 ```
 /**
@@ -574,6 +742,12 @@ AbstractClassEnhancePluginDefine分为3类：
 - signatureMatchDefine：通过签名/注解或者其他条件间接匹配
 - bootstrapClassMatchDefine：新增的bootstrap用的
 ```
+    /**
+     * 为什么这里的Map泛型是<String,LinkedList>
+     * 因为对于同一个类,可能有多个插件都要对它进行字节码增强
+     * key => 目标类
+     * value => 所有可以对这个目标类生效的插件
+     */
     private final Map<String, LinkedList<AbstractClassEnhancePluginDefine>> nameMatchDefine = new HashMap<String, LinkedList<AbstractClassEnhancePluginDefine>>();
     private final List<AbstractClassEnhancePluginDefine> signatureMatchDefine = new ArrayList<AbstractClassEnhancePluginDefine>();
     private final List<AbstractClassEnhancePluginDefine> bootstrapClassMatchDefine = new ArrayList<AbstractClassEnhancePluginDefine>();

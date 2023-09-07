@@ -7,7 +7,7 @@ keywords: Skywalking
 # Skywalking源码插件增强
 
 
-## 
+## 插件增强
 用BootstrapInstrumentBoost的inject()方法，代码如下：
 ```
 public class BootstrapInstrumentBoost {

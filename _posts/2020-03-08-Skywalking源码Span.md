@@ -261,7 +261,9 @@ StackBasedTracingSpan是一个内部具有栈结构的Span，它可以启动和�
 
 在这样一个单体结构中，只会有一个TraceSegment，TraceSegment中会有一个EntrySpan
 
-请求进来后，走到Tomcat，SkyWalking的Tomcat插件会尝试创建EntrySpan，如果发现自己是这个请求到达后第一个工作的插件就会创建EntrySpan，如果不是第一个就会复用之前插件创建的EntrySpan。Tomcat插件创建EntrySpan，并会在Span上记录tags、logs、component、layer等信息，代码如下：
+请求进来后，走到Tomcat，SkyWalking的Tomcat插件会尝试创建EntrySpan，如果发现自己是这个请求到达后第一个工作的插件就会创建EntrySpan，如果不是第一个就会复用之前插件创建的EntrySpan。
+
+Tomcat插件创建EntrySpan，并会在Span上记录tags、logs、component、layer等信息，代码如下：
 ```
 public class TomcatInvokeInterceptor implements InstanceMethodsAroundInterceptor {
 
@@ -401,13 +403,15 @@ SpringMVC复用Tomcat创建的EntrySpan，会把当前栈深和当前最大栈�
 
 当返回到Tomcat时，当前栈深-1，此时当前栈深=0，当前最大栈深=2，当前栈深=0时，就代表EntrySpan出栈了
 
-如何判断当前EntrySpan是复用前面的呢？只需要判断currentMaxDepth不等于1就是复用前面的EntrySpan，如果等于1就是当前插件创建的EntrySpan。记录Span信息的时候都是请求进来EntrySpan入栈的流程，只要stackDepth=currentMaxDepth时就是请求进来的流程，所以只有stackDepth=currentMaxDepth时才允许记录Span的信息
+如何判断当前EntrySpan是复用前面的呢？只需要判断currentMaxDepth不等于1就是复用前面的EntrySpan，如果等于1就是当前插件创建的EntrySpan。
+
+记录Span信息的时候都是请求进来EntrySpan入栈的流程，只要stackDepth=currentMaxDepth时就是请求进来的流程，所以只有stackDepth=currentMaxDepth时才允许记录Span的信息
 
 ### EntrySpan有如下几个特性：
 
-在一个TraceSegment里面只能存在一个EntrySpan
-后面的插件复用前面插件创建的EntrySpan时会覆盖掉前面插件设置的Span信息
-EntrySpan记录的信息永远是最靠近服务提供侧的信息
+- 在一个TraceSegment里面只能存在一个EntrySpan
+- 后面的插件复用前面插件创建的EntrySpan时会覆盖掉前面插件设置的Span信息
+- EntrySpan记录的信息永远是最靠近服务提供侧的信息
 
 EntrySpan和ExitSpan都是通过StackBasedTracingSpan来实现的，继承关系如下：
 
@@ -535,12 +539,14 @@ public class EntrySpan extends StackBasedTracingSpan {
 ```
 
 ## ExitSpan
-ExitSpan代表服务消费侧，比如Feign、Okhttp。ExitSpan是链路中一个退出的点或者离开的Span。在一个RPC调用中，会有多层退出的点，而ExitSpan永远表示第一个。比如，Dubbox中使用HttpComponent发起远程调用。ExitSpan表示Dubbox的Span，并忽略HttpComponent的Span信息
+ExitSpan代表服务消费侧，比如Feign、Okhttp。ExitSpan是链路中一个退出的点或者离开的Span。在一个RPC调用中，会有多层退出的点，而ExitSpan永远表示第一个。
+
+比如，Dubbox中使用HttpComponent发起远程调用。ExitSpan表示Dubbox的Span，并忽略HttpComponent的Span信息
 
 EntrySpan和ExitSpan的区别就在于：
 
-EntrySpan记录的是更靠近服务这一侧的信息
-ExitSpan记录的是更靠近消费这一侧的信息
+- EntrySpan记录的是更靠近服务这一侧的信息
+- ExitSpan记录的是更靠近消费这一侧的信息
 
 ExitSpan代码如下：
 ```
@@ -665,10 +671,10 @@ ExitSpan不要把理解为TraceSegment的结束，可以理解为离开当前Tra
 
 注意：
 
-所谓ExitSpan和EntrySpan一样采用复用的机制，前提是在插件嵌套的情况下
-多个ExitSpan不存在嵌套关系，是平行存在的时候，是允许同时存在多个ExitSpan
-把ExitSpan简单理解为离开当前进程/线程的操作
-TraceSegment里不一定非要有ExitSpan
+- 所谓ExitSpan和EntrySpan一样采用复用的机制，前提是在插件嵌套的情况下
+- 多个ExitSpan不存在嵌套关系，是平行存在的时候，是允许同时存在多个ExitSpan
+- 把ExitSpan简单理解为离开当前进程/线程的操作
+- TraceSegment里不一定非要有ExitSpan
 
 
 ## LocalSpan

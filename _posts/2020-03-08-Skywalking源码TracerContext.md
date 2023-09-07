@@ -476,6 +476,7 @@ stopSpan()方法处理逻辑如下：
 - 将当前TraceSegment交给TracingContextListener去处理，TracingContextListener会将TraceSegment发送到OAP
 - 修改当前TracingContext运行状态为false
 
+## inject()和extract()
 TracingContext中inject()和extract()方法：
 ```
 public class TracingContext implements AbstractTracerContext {
