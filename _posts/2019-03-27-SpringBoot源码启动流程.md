@@ -1108,7 +1108,6 @@ public void started(ConfigurableApplicationContext context) {
 
 
 #### 第八步：执行Runners
-
 我们再来看看最后一步**callRunners**(context, applicationArguments);
 
 ```
@@ -1131,31 +1130,6 @@ private void callRunners(ApplicationContext context, ApplicationArguments args) 
     }
 }
 ```
-
-如果是ApplicationRunner的话,则执行如下代码:
-
-```
-private void callRunner(ApplicationRunner runner, ApplicationArguments args) {
-    try {
-        runner.run(args);
-    } catch (Exception var4) {
-        throw new IllegalStateException("Failed to execute ApplicationRunner", var4);
-    }
-}
-```
-
-如果是CommandLineRunner的话,则执行如下代码:
-
-```
-private void callRunner(CommandLineRunner runner, ApplicationArguments args) {
-    try {
-        runner.run(args.getSourceArgs());
-    } catch (Exception var4) {
-        throw new IllegalStateException("Failed to execute CommandLineRunner", var4);
-    }
-}
-```
-
 我们也可以自定义一些ApplicationRunner或者CommandLineRunner，实现其run方法，并注入到Spring容器中,在SpringBoot启动完成后，会执行所有的runner的run方法
 
 ## 启动时初始化数据

@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: SpringBoot
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---

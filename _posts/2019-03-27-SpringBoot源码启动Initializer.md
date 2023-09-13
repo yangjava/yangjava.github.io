@@ -4,6 +4,12 @@ categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot定时任务
+# SpringBoot源码启动Initializer
 
-## SpringBoot整合Quartz
+
+
+
+
+
+
+

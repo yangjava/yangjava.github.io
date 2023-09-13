@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Lucene
+categories: [Lucene]
 description: none
 keywords: Lucene
 ---

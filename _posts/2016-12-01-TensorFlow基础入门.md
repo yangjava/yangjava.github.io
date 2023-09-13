@@ -1,8 +1,8 @@
 ---
 layout: post
-categories: [Python,TensorFlow]
+categories: [TensorFlow]
 description: none
-keywords: Python
+keywords: TensorFlow
 ---
 # TensorFlow
 
