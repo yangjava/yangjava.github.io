@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Kubernetes
+categories: [Kubernetes]
 description: none
 keywords: Kubernetes
 ---
@@ -10,7 +10,9 @@ Kubernetes是用于自动部署，扩展和管理容器化应用程序的开源�
 **Kubernetes, also known as K8s, is an open-source system for automating deployment, scaling, and management of containerized applications.**
 
 ## 什么是Kubernetes
-Kubernetes (通常称为K8s，K8s是将8个字母“ubernete”替换为“8”的缩写) 是用于自动部署、扩展和管理容器化（containerized）应用程序的开源系统。Google设计并捐赠给Cloud Native Computing Foundation（今属Linux基金会）来使用的。 它旨在提供“跨主机集群的自动部署、扩展以及运行应用程序容器的平台”。它支持一系列容器工具, 包括Docker等。
+Kubernetes (通常称为K8s，K8s是将8个字母“ubernete”替换为“8”的缩写) 是用于自动部署、扩展和管理容器化（containerized）应用程序的开源系统。
+
+Google设计并捐赠给Cloud Native Computing Foundation（今属Linux基金会）来使用的。 它旨在提供“跨主机集群的自动部署、扩展以及运行应用程序容器的平台”。它支持一系列容器工具, 包括Docker等。
 
 ## Kubernetes发展史
 Kubernetes (希腊语"舵手" 或 "飞行员") 由Joe Beda，Brendan Burns和Craig McLuckie创立，并由其他谷歌工程师，包括Brian Grant和Tim Hockin进行加盟创作，并由谷歌在2014年首次对外宣布 。它的开发和设计都深受谷歌的Borg系统的影响，它的许多顶级贡献者之前也是Borg系统的开发者。在谷歌内部，Kubernetes的原始代号曾经是Seven，即星际迷航中友好的Borg(博格人)角色。Kubernetes标识中舵轮有七个轮辐就是对该项目代号的致意。
@@ -29,14 +31,20 @@ Rancher Labs在其Rancher容器管理平台中包含了Kubernetes的发布版。
 最后，Kubernetes是一个完备的分布式系统支撑平台。Kubernetes具有完备的集群管理能力，包括多层次的安全防护和准入机制、多租户应用支撑能力、透明的服务注册和服务发现机制、内建的智能负载均衡器、强大的故障发现和自我修复能力、服务滚动升级和在线扩容能力、可扩展的资源自动调度机制，以及多粒度的资源配额管理能力。同时，Kubernetes提供了完善的管理工具，这些工具涵盖了包括开发、部署测试、运维监控在内的各个环节。因此，Kubernetes是一个全新的基于容器技术的分布式架构解决方案，并且是一个一站式的完备的分布式系统开发和支撑平台。
 
 在正式开始Hello World之旅之前，我们首先要学习Kubernetes的一些基本知识，这样才能理解Kubernetes提供的解决方案。
+
+## Service概念
 在Kubernetes中，Service是分布式集群架构的核心，一个Service对象拥有如下关键特征。
 - 拥有唯一指定的名称（比如mysql-server）。
 - 拥有一个虚拟IP（Cluster IP、Service IP或VIP）和端口号。
 - 能够提供某种远程服务能力。
 - 被映射到提供这种服务能力的一组容器应用上。
 Service的服务进程目前都基于Socket通信方式对外提供服务，比如Redis、Memcache、MySQL、Web Server，或者是实现了某个具体业务的特定TCP Server进程。虽然一个Service通常由多个相关的服务进程提供服务，每个服务进程都有一个独立的Endpoint（IP+Port）访问点，但Kubernetes能够让我们通过Service（虚拟Cluster IP +Service Port）连接到指定的Service。
+
 容器提供了强大的隔离功能，所以有必要把为Service提供服务的这组进程放入容器中进行隔离。为此，Kubernetes设计了Pod对象，将每个服务进程都包装到相应的Pod中，使其成为在Pod中运行的一个容器（Container）。为了建立Service和Pod间的关联关系，Kubernetes首先给每个Pod都贴上一个标签（Label），给运行MySQL的Pod贴上name=mysql标签，给运行PHP的Pod贴上name=php标签，然后给相应的Service定义标签选择器（Label Selector），比如MySQL Service的标签选择器的选择条件为name=mysql，意为该Service要作用于所有包含name=mysql Label的Pod。这样一来，就巧妙解决了Service与Pod的关联问题。
+
+## Pod概念
 这里先简单介绍Pod的概念。首先，Pod运行在一个被称为节点（Node）的环境中，这个节点既可以是物理机，也可以是私有云或者公有云中的一个虚拟机，通常在一个节点上运行几百个Pod；其次，在每个Pod中都运行着一个特殊的被称为Pause的容器，其他容器则为业务容器，这些业务容器共享Pause容器的网络栈和Volume挂载卷，因此它们之间的通信和数据交换更为高效，在设计时我们可以充分利用这一特性将一组密切相关的服务进程放入同一个Pod中；最后，需要注意的是，并不是每个Pod和它里面运行的容器都能被映射到一个Service上，只有提供服务（无论是对内还是对外）的那组Pod才会被映射为一个服务。
+
 在集群管理方面，Kubernetes将集群中的机器划分为一个Master和一些Node。在Master上运行着集群管理相关的一组进程kube-apiserver、kube-controller-manager和kubescheduler，这些进程实现了整个集群的资源管理、Pod调度、弹性伸缩、安全控制、系统监控和纠错等管理功能，并且都是自动完成的。Node作为集群中的工作节点，运行真正的应用程序，在Node上Kubernetes管理的最小运行单元是Pod。在Node上运行着Kubernetes的kubelet、kube-proxy服务进程，这些服务进程负责Pod的创建、启动、监控、重启、销毁，以及实现软件模式的负载均衡器。
 
 在Kubernetes集群中，只需为需要扩容的Service关联的Pod创建一个RC（Replication Controller），服务扩容以至服务升级等令人头疼的问题都迎刃而解。在一个RC定义文件中包括以下3个关键信息。
@@ -82,6 +90,7 @@ spec:
           value: "123456"
 ```
 以上YAML定义文件中的kind属性用来表明此资源对象的类型，比如这里的值为ReplicationController，表示这是一个RC；在spec一节中是RC的相关属性定义，比如spec.selector是RC的Pod标签选择器，即监控和管理拥有这些标签的Pod实例，确保在当前集群中始终有且仅有replicas个Pod实例在运行，这里设置replicas=1，表示只能运行一个MySQL Pod实例。
+
 当在集群中运行的Pod数量少于replicas时，RC会根据在spec.template一节中定义的Pod模板来生成一个新的Pod实例，spec.template.metadata.labels指定了该Pod的标签，需要特别注意的是：这里的labels必须匹配之前的spec.selector，否则此RC每创建一个无法匹配Label的Pod，就会不停地尝试创建新的Pod，陷入恶性循环中。
 
 在创建好mysql-rc.yaml文件后，为了将它发布到Kubernetes集群中，我们在Master上执行命令：
