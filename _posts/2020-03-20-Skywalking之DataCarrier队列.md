@@ -9,7 +9,7 @@ keywords: Skywalking
 
 DataCarrier 是一个轻量级的生产者-消费者模式的实现库， Skywalking Agent 在收集到 Trace 数据之后，会先将 Trace 数据写入到 DataCarrier 中缓存，然后由后台线程定时发送到 Skywalking 服务端。呦吼，和前面介绍的 Dubbo MonitorFilter 的实现原理类似啊，emmm，其实多数涉及到大量网络传输的场景都会这么设计：先本地缓存聚合，然后定时发送。
 
-DataCarrier 实现在 Skywalking 中是一个单独的模块
+
 
 首先来看 Buffer 这个类，它是一个环形缓冲区，是整个 DataCarrier 最底层的一个类，其核心字段如下：
 

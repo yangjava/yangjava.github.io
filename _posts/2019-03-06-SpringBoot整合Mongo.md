@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: [SpringBoot,MongoDB]
+categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---

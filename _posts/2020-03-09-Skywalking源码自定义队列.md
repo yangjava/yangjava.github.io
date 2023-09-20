@@ -7,7 +7,9 @@ keywords: Skywalking
 # Skywalking源码自定义队列
 
 ## DataCarrier Buffer
-Agent采集到的链路数据会先放到DataCarrier中，由消费者线程读取DataCarrier中的数据上报到OAP
+Agent采集到的链路数据会先放到DataCarrier中，由消费者线程读取DataCarrier中的数据上报到OAP。DataCarrier 实现在 Skywalking 中是一个单独的模块。
+
+DataCarrier 是一个轻量级的生产者-消费者模式的实现库， Skywalking Agent 在收集到 Trace 数据之后，会先将 Trace 数据写入到 DataCarrier 中缓存，然后由后台线程定时发送到 Skywalking 服务端。
 
 ## QueueBuffer
 DataCarrier是使用Buffer作为数据存储，Buffer的底层接口是QueueBuffer，代码如下：
