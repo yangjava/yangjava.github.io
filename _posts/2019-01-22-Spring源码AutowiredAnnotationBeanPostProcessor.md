@@ -8,8 +8,6 @@ keywords: Spring
 AutowiredAnnotationBeanPostProcessor 完成了 Spring基本的属性注入功能(@Autowired、@Value 、@Inject 注解功能)。
 
 ## AutowiredAnnotationBeanPostProcessor
-下面是 AutowiredAnnotationBeanPostProcessor 的结构图图。
-
 可以看到 AutowiredAnnotationBeanPostProcessor 继承InstantiationAwareBeanPostProcessorAdapter类、实现 MergedBeanDefinitionPostProcessor、PriorityOrdered、BeanFactoryAware 接口。
 
 个人理解：

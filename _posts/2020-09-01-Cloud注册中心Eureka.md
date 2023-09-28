@@ -1,8 +1,8 @@
 ---
 layout: post
-categories: [SpringCloud,Eureka]
+categories: [SpringCloud]
 description: none
-keywords: Eureka
+keywords: SpringCloud
 ---
 # Eureka注册中心
 注册中心在微服务架构中是必不可少的一部分，主要用来实现服务治理功能，我们将学习如何用Netflix提供的Eureka作为注册中心，来实现服务治理的功能。
@@ -18,7 +18,7 @@ Eureka这个词来源于古希腊语，意为“我找到了！我发现了！�
 
 ## Spring Cloud Eureka入门案例
 基于Spring Cloud的Finchley.RELEASE版本，spring-cloud-netflix版本基于2.0.0.RELEASE，Eureka版本基于v1.9.2。
-```xml
+```
 <dependencyManagement>
     <dependencies>
         <dependency>
@@ -56,6 +56,7 @@ Eureka这个词来源于古希腊语，意为“我找到了！我发现了！�
     </dependency>
 </dependencies>
 ```
+
 对于Eureka的启动主类，在启动类中添加注解@EnableEurekaServer，作为程序的入口
 ```java
 @SpringBootApplication
@@ -87,15 +88,20 @@ spring:
     name: eureka-service
 ```
 InstanceId是Eureka服务的唯一标记，主要用于区分同一服务集群的不同实例。一般来讲，一个Eureka服务实例默认注册的InstanceId是它的主机名（即一个主机只有一个服务）。但是这样会引发一个问题，一台主机不能启动多个属于同一服务的服务实例。
+
 为了解决这种情况，spring-cloud-netflix-eureka提供了一个合理的实现，如上面代码中的InstanceId设置样式。通过设置random.value可以使得每一个服务实例的InstanceId独一无二，从而可以唯一标记它自身。
 
 Eureka Server既可以独立部署，也可以集群部署。在集群部署的情况下，Eureka Server间会进行注册表信息同步的操作，这时被同步注册表信息的Eureka Server将会被其他同步注册表信息的Eureka Server称为peer。
 
-请注意，上述配置中的service-url指向的注册中心为实例本身。通常来讲，一个Eureka Server也是一个Eureka Client，它会尝试注册自己，所以需要至少一个注册中心的URL来定位对等点peer。如果不提供这样一个注册端点，注册中心也能工作，但是会在日志中打印无法向peer注册自己的信息。在独立（Standalone）Eureka Server的模式下，Eureka Server一般会关闭作为客户端注册自己的行为。
+请注意，上述配置中的service-url指向的注册中心为实例本身。通常来讲，一个Eureka Server也是一个Eureka Client，它会尝试注册自己，所以需要至少一个注册中心的URL来定位对等点peer。
+
+如果不提供这样一个注册端点，注册中心也能工作，但是会在日志中打印无法向peer注册自己的信息。在独立（Standalone）Eureka Server的模式下，Eureka Server一般会关闭作为客户端注册自己的行为。
 
 Eureka Server与Eureka Client之间的联系主要通过心跳的方式实现。心跳（Heartbeat）即Eureka Client定时向Eureka Server汇报本服务实例当前的状态，维护本服务实例在注册表中租约的有效性。
 
-Eureka Server需要随时维持最新的服务实例信息，所以在注册表中的每个服务实例都需要定期发送心跳到Server中以使自己的注册保持最新的状态（数据一般直接保存在内存中）。为了避免Eureka Client在每次服务间调用都向注册中心请求依赖服务实例的信息，Eureka Client将定时从Eureka Server中拉取注册表中的信息，并将这些信息缓存到本地，用于服务发现。
+Eureka Server需要随时维持最新的服务实例信息，所以在注册表中的每个服务实例都需要定期发送心跳到Server中以使自己的注册保持最新的状态（数据一般直接保存在内存中）。
+
+为了避免Eureka Client在每次服务间调用都向注册中心请求依赖服务实例的信息，Eureka Client将定时从Eureka Server中拉取注册表中的信息，并将这些信息缓存到本地，用于服务发现。
 
 启动Eureka Server后，应用会有一个主页面用来展示当前注册表中的服务实例信息并同时暴露一些基于HTTP协议的端点在/eureka路径下，这些端点将由Eureka Client用于注册自身、获取注册表信息以及发送心跳等。
 
@@ -184,7 +190,7 @@ eureka:
                     mymetaData: mydata
 ```
 这里定义了一个键为mymetaData，值为mydata的自定义元数据，metadata-map在EurekaInstanceConfigBean会被配置为以下的属性：
-```java
+```
 private Map<String, String> metadataMap = new HashMap<>();
 ```
 这些自定义的元数据可以按照自身业务需要或者根据其他的特殊需要进行定制。

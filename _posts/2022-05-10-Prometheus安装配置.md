@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Prometheus
+categories: [Prometheus]
 description: none
 keywords: Prometheus
 ---
