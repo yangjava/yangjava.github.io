@@ -8,24 +8,30 @@ keywords: Zookeeper
 Zookeeper的客户端与服务端之间会进行一系列的网络通信来实现数据传输，Zookeeper使用Jute组件来完成数据的序列化和反序列化操作，其用于Zookeeper进行网络数据传输和本地磁盘数据存储的序列化和反序列化工作。
 
 ## Jute概述
-Zookeeper的客户端和服务端进行网络通信实现数据传输使用了序列化组件Jute，它最初是Hadoop中默认的序列化组件（Record IO）中的序列化组件，后来Hadoop从0.21.0版本开始废弃了Record IO，而使用Avro这个序列化框架，而Zookeeper官方由于一些历史原因依然使用了Jute这个古老的序列化组件，它对数据的序列化和反序列化操作是zookeeper高效传输数据的基础。
+Zookeeper的客户端和服务端进行网络通信实现数据传输使用了序列化组件Jute，它最初是Hadoop中默认的序列化组件（Record IO）中的序列化组件，
 
+后来Hadoop从0.21.0版本开始废弃了Record IO，而使用Avro这个序列化框架，而Zookeeper官方由于一些历史原因依然使用了Jute这个古老的序列化组件，它对数据的序列化和反序列化操作是zookeeper高效传输数据的基础。
 
 实体类要使用Jute进行序列化和反序列化步骤：
+- 需要实现Record接口的serialize和deserialize方法；
+- 构建一个序列化器BinaryOutputArchive；
+- 序列化:调用实体类的serialize方法，将对象序列化到指定的tag中去，比如这里将对象序列化到header中；
+- 反序列化:调用实体类的deserialize方法，从指定的tag中反序列化出数据内容。
 
-1. 需要实现Record接口的serialize和deserialize方法；
-2. 构建一个序列化器BinaryOutputArchive；
-3. 序列化:调用实体类的serialize方法，将对象序列化到指定的tag中去，比如这里将对象序列化到header中；
-4. 反序列化:调用实体类的deserialize方法，从指定的tag中反序列化出数据内容。
-
+## Jute源码架构
 Jute部分主要在org.apache.jute包中
-
+```
+zookeeper-jute
+├─Record  Jute序列化的核心                  
+├─InputArchive   反序列化器               
+├─OutputArchive  序列化器
+```
 Jute主要用于Zookeeper进行网络传输和本地磁盘数据的序列化及反序列化工作。
 
-
 ## Record接口
+Zookeeper中所需要进行网络传输或是本地磁盘存储的类型定义，都实现了该接口，是Jute序列化的核心。Record定义了两个基本的方法，分别是serialize和deserialize，分别用于序列化和反序列化。
 
-Zookeeper中所需要进行网络传输或是本地磁盘存储的类型定义，都实现了该接口，是Jute序列化的核心。Record定义了两个基本的方法，分别是serialize和deserialize，分别用于序列化和反序列化。其中archive是底层真正的序列化器和反序列化器，并且每个archive中可以包含对多个对象的序列化和反序列化，因此两个接口中都标记了参数tag，用于序列化器和反序列化器标识对象自己的标记。
+其中archive是底层真正的序列化器和反序列化器，并且每个archive中可以包含对多个对象的序列化和反序列化，因此两个接口中都标记了参数tag，用于序列化器和反序列化器标识对象自己的标记。
 
 Jute中定义了自己独特的序列化格式Record，Zookeeper中所有需要进行网络传输或者本地磁盘存储的类型定义都实现了该接口。该接口中有两个方法：serialize和deserialize，所有继承它的类通过这两个方法定义序列化和反序列化的方式，其中OutputArchive和InputArchive是真正的序列化器和反序列化器。
 
@@ -37,9 +43,10 @@ public interface Record {
         throws IOException;
 }
 ```
-注意，这两个方法中都有参数tag，这是因为每个Archive可以包含对多个对象的序列化和反序列化，这两个接口可以用于标识对象。以RequestHeader为例：
+注意，这两个方法中都有参数tag，这是因为每个Archive可以包含对多个对象的序列化和反序列化，这两个接口可以用于标识对象。
 
-```java
+以RequestHeader为例：
+```
   public void serialize(OutputArchive a_, String tag) throws java.io.IOException {
         a_.startRecord(this,tag);
         a_.writeInt(xid,"xid");
@@ -53,8 +60,9 @@ public void deserialize(InputArchive a_, String tag) throws java.io.IOException 
         a_.endRecord(tag);
         }
 ```
+
 RequestHeader中包含了xid和type两个属性，序列化/反序列化遵循三个步骤：
-```java
+```
 - startRecord
 - read/writeXXX
 - endRecord
@@ -67,10 +75,11 @@ BinaryOutputArchive对数据对象的序列化和反序列化，主要用于进�
 
 序列化和反序列化接口的定义部分，在Zookeeper中分别有BinaryOutputArchive/BinaryInputArchive、CsvOutputArchive\CsvInputArchive、XmlOutputArchive\XmlInputArchive三种实现，基于Binary是Zookeeper中最主要的序列化方式。
 
-
 ## zookeeper.jute
-在Zookeeper的src文件夹下有zookeeper.jute文件，这个文件定义了所有的实体类的所属包名、类名及类的所有成员变量和类型，该文件会在源代码编译时，Jute会使用不同的代码生成器为这些类定义生成实际编程语言的类文件，如java语言生成的类文件保存在src/java/generated目录下，每个类都会实现Record接口。zookeeper.jute文件部分源码如下：
-```java
+在Zookeeper的src文件夹下有zookeeper.jute文件，这个文件定义了所有的实体类的所属包名、类名及类的所有成员变量和类型，该文件会在源代码编译时，Jute会使用不同的代码生成器为这些类定义生成实际编程语言的类文件，如java语言生成的类文件保存在src/java/generated目录下，每个类都会实现Record接口。
+
+zookeeper.jute文件部分源码如下：
+```
 module org.apache.zookeeper.data {
     class Id {
         ustring scheme;
@@ -174,7 +183,6 @@ module org.apache.zookeeper.server.persistence {
 ```
 
 ## ZooKeeper通信协议
-
 基于TCP/IP协议，Zookeeper实现了自己的通信协议来玩按成客户端与服务端、服务端与服务端之间的网络通信，对于请求，主要包含请求头和请求体，对于响应，主要包含响应头和响应体。
 
 Zookeeper在TCP/IP基础上实现了自己的通信协议，主要在org.apache.zookeeper.proto包中。
@@ -221,7 +229,7 @@ public class CreateRequest {
 }
 ```
 在Zookeeper中，节点类型包含四种：
-```java
+```
 PERSISTENT (0, false, false),  // 永久节点
 PERSISTENT_SEQUENTIAL (2, false, true),  //永久顺序节点
 EPHEMERAL (1, true, false),  //临时节点

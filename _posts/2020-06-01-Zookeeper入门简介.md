@@ -9,6 +9,7 @@ ZooKeeper是一个为分布式应用所设计的开源协调服务。主要用�
 
 ## Zookeeper简介
 ApacheZooKeeper是 Apache 软件基金会的一个软件项目，它为大型分布式计算提供开源的分布式配置服务、同步服务和命名注册。ZooKeeper 曾经是 Hadoop 的一个子项目，但现在是一个独立的顶级项目。
+
 官网介绍:
 ```
 Apache ZooKeeper is an effort to develop and maintain an open-source server which enables highly reliable distributed coordination.
@@ -16,8 +17,11 @@ Apache ZooKeeper is an effort to develop and maintain an open-source server whic
 官网介绍：**Apache ZooKeeper 致力于开发和维护一个开源服务器，以高可靠的分布式协调服务。**
 
 Zookeeper是根据谷歌的论文《The Chubby Lock Service for Loosely Couple Distribute System 》所做的开源实现。 ZooKeeper 是 Apache 的顶级项目。ZooKeeper 为分布式应用提供了高效且可靠的分布式协调服务，提供了诸如统一命名服务、配置管理和分布式锁等分布式的基础服务。在解决分布式数据一致性方面，ZooKeeper 并没有直接采用 Paxos 算法，而是采用了名为 ZAB 的一致性协议。
+
 ZooKeeper 主要用来解决分布式集群中应用系统的一致性问题，它能提供基于类似于文件系统的目录节点树方式的数据存储。但是 ZooKeeper 并不是用来专门存储数据的，它的作用主要是用来维护和监控存储数据的状态变化。通过监控这些数据状态的变化，从而可以达到基于数据的集群管理。
+
 ZooKeeper 本质上是一个分布式的小文件存储系统。提供基于类似于文件系统的目录树方式的数据存储,并且可以对树中的节点进行有效管理。zk里存储了客户端感兴趣的数据，一旦这些数据发生变化就会通知到客户端做处理，zk的本质就是文件系统+通知机制。
+
 ZooKeeper 提供给客户端监控存储在zk内部数据的功能，从而可以达到基于数据的集群管理。诸如:统一命名服务(dubbo)分布式配置管理(olr的配置集中管理)、分布式消息队列(sub/pub) 、分布式锁、分布式协调等功能。
 
 ## 由来

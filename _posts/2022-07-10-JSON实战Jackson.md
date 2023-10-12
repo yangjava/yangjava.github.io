@@ -729,3 +729,39 @@ public class JsonTest {
 }
 ```
 
+
+```
+Jackson反序列化泛型List
+
+ObjectMapper mapper = new ObjectMapper();
+　　// 排除json字符串中实体类没有的字段
+　　objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
+
+
+
+String json = "[{\"name\":\"a\",\"password\":\"345\"},{\"name\":\"b\",\"password\":\"123\"}]";
+        
+//第一种方法
+List<User> list = mapper.readValue(json, new TypeReference<List<User>>(){/**/});
+        
+//第二种方法
+JavaType javaType = mapper.getTypeFactory().constructCollectionType(List.class, User.class);
+List<User> list2 = mapper.readValue(json, javaType);
+```
+
+public final ObjectMapper mapper = new ObjectMapper();
+
+    public static void main(String[] args) throws Exception{  
+        JavaType javaType = getCollectionType(ArrayList.class, YourBean.class); 
+        List<YourBean> lst =  (List<YourBean>)mapper.readValue(jsonString, javaType); 
+    }   
+       /**   
+        * 获取泛型的Collection Type  
+        * @param collectionClass 泛型的Collection   
+        * @param elementClasses 元素类   
+        * @return JavaType Java类型   
+        * @since 1.0   
+        */   
+    public static JavaType getCollectionType(Class<?> collectionClass, Class<?>... elementClasses) {   
+        return mapper.getTypeFactory().constructParametricType(collectionClass, elementClasses);   
+    }

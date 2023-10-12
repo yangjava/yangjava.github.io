@@ -1257,3 +1257,9 @@ private void processWorkerExit(Worker w, boolean completedAbruptly) {
     }
 }
 ```
+
+```
+    ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(5, 10,
+            0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(200), r -> new Thread(r,"GraphRefreshRedisThread"), new ThreadPoolExecutor.CallerRunsPolicy());
+```

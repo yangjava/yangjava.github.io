@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Kubernetes
+categories: [Kubernetes]
 description: none
 keywords: Kubernetes
 ---

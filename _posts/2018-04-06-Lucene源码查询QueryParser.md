@@ -4,10 +4,137 @@ categories: [Lucene]
 description: none
 keywords: Lucene
 ---
-# Lucene源码查询解析器
-结合当下正在学习与研究的Lucene Query，带着好奇心深入学习了JavaCC和Lucene QueryParse.jj语法规则的实现。
+# Lucene源码查询QueryParser
+Lucene 的 QueryParser 是用于解析查询字符串并生成查询对象的类。
 
-## Lucene的Token正规表达式定义
+## 功能
+QueryParser 类位于 org.apache.lucene.queryparser.classic 包中。它是一个用于解析用户查询字符串的工具类，将查询字符串转换成相应的 Lucene 查询对象。
+
+QueryParser 是 Lucene 中的一个核心类，用于将用户输入的查询字符串转换成相应的查询对象，以便进行搜索操作。其作用主要包括以下几个方面：
+- 解析查询字符串
+QueryParser 可以解析用户输入的查询字符串，根据其中的关键词、短语、通配符、布尔运算符等语法规则进行分析，生成相应类型的查询对象。这些查询对象包括 TermQuery、PhraseQuery、WildcardQuery、BooleanQuery 等。
+- 指定字段和分析器
+QueryParser 可以指定要搜索的字段名和分析器，以便正确地对查询字符串进行分析处理。例如，如果使用 StandardAnalyzer 分析器，则会对查询字符串进行分词、停用词过滤、小写化等操作，以便生成准确的查询对象。
+- 支持自定义查询
+QueryParser 在生成查询对象时，支持用户自定义查询表达式，包括模糊查询、范围查询、前缀查询等，满足不同的搜索需求。
+- 简化查询运算
+QueryParser 还可以简化查询运算，设置默认的逻辑运算符（AND 或 OR），避免用户手动添加逻辑运算符带来的麻烦和错误。
+
+以下是 QueryParser 类的关键方法：
+- 构造函数：QueryParser 提供多个构造函数，用于初始化查询解析器的字段、分析器和搜索配置等参数。
+- parse(String query) 方法：该方法接受一个查询字符串作为参数，并将其解析成相应的查询对象。
+- setAllowLeadingWildcard(boolean allowLeadingWildcard) 方法：设置是否允许在通配符查询或前缀查询中使用通配符 * 或 ? 作为首字符，默认为禁止。
+- setLowercaseExpandedTerms(boolean lowercaseExpandedTerms) 方法：设置是否将查询字符串转换为小写形式，默认为开启。
+- setMultiTermRewriteMethod(MultiTermQuery.RewriteMethod method) 方法：设置多词项查询（如通配符查询、前缀查询等）的重写方法，默认为 constantScore_auto_rewrite。
+- setDefaultOperator(Operator operator) 方法：设置默认的逻辑运算符（AND 或 OR）来组合用空格分隔的查询项，默认为 Operator.OR。
+- setPhraseSlop(int phraseSlop) 方法：设置短语查询允许的词项位置之间的最大距离，默认为 0。
+- setAutoGeneratePhraseQueries(boolean value) 方法：设置是否自动生成短语查询，默认为关闭。
+- setFuzzyMinSim(float fuzzyMinSim) 和 setFuzzyPrefixLength(int fuzzyPrefixLength) 方法：用于设置模糊查询的最小相似度和前缀长度。 
+
+QueryParser 使用了内部类 QueryParserConstants 和 QueryParserTokenManager 来进行词法分析和语法解析。在解析查询字符串时，它会根据查询字符串中的特殊符号和关键词进行相应的处理，生成对应类型的查询对象（如布尔查询、短语查询、通配符查询等）。
+
+同时，QueryParser 还支持扩展和自定义的方式，你可以通过继承 QueryParserBase 类并重写相应的方法来实现自定义的查询解析逻辑。
+
+## QueryParser源码
+```
+    public static void main(String[] args) throws Exception {
+        QueryParser qp = new QueryParser("field",
+                new org.apache.lucene.analysis.standard.StandardAnalyzer());
+        Query q = qp.parse(args[0]);
+        System.out.println(q.toString("field"));
+    }
+```
+
+首先，我们来看一下QueryParser类的构造函数：
+```
+ public QueryParser(String f, Analyzer a) {
+        this((CharStream)(new FastCharStream(new StringReader(""))));
+        this.init(f, a);
+    }
+```
+这段代码是 QueryParser 类的一个构造函数。让我们逐行来分析它：
+- this((CharStream)(new FastCharStream(new StringReader(""))));
+这是调用 QueryParser 类的另一个构造函数的方式，传入一个 CharStream 对象作为参数。CharStream 是用于提供字符流的抽象基类。
+
+- this.init(f, a);
+这是一个私有方法 init(String f, Analyzer a) 的调用，用于初始化 QueryParser 对象的字段和分析器。f 参数是要搜索的字段名，a 参数是用于分析查询字符串的分析器。
+
+总结起来，这个构造函数的目的是使用空的字符串作为输入，将字段和分析器设置为指定的值。它通过调用 init 方法完成了这些设置。
+
+整个Lucene的搜索入口点在TopLevelQuery函数，它最后返回Query类型对象。
+```
+ public Query parse(String query) throws ParseException {
+    ReInit(new FastCharStream(new StringReader(query)));
+    try {
+      // TopLevelQuery is a Query followed by the end-of-input (EOF)
+      Query res = TopLevelQuery(field);
+      return res!=null ? res : newBooleanQuery().build();
+    }
+    catch (ParseException | TokenMgrError tme) {
+      // rethrow to include the original query:
+      ParseException e = new ParseException("Cannot parse '" +query+ "': " + tme.getMessage());
+      e.initCause(tme);
+      throw e;
+    } catch (BooleanQuery.TooManyClauses tmc) {
+      ParseException e = new ParseException("Cannot parse '" +query+ "': too many boolean clauses");
+      e.initCause(tmc);
+      throw e;
+    }
+  }
+```
+这段代码是一个解析查询字符串的方法实现，它使用自定义的词法分析器和解析器来将查询字符串转换为相应的查询对象。在解析过程中，可能会捕获到异常，并将其封装成自定义的 ParseException 异常进行抛出，以提供更详细的错误信息。
+
+## 查询语句解析
+先做关键字识别、词条处理等等，最终生成语法树。我们创建QueryParser的时候，使用的是StandardAnalyzer分词器，analyzer主要完成分词、去除停用词、转换大小写等操作。
+
+QueryParser在parse生成Query的时候，会根据不同的查询类型生成不同的Query，比如WildcardQuery、RegexpQuery、PrefixQuery等等。
+
+假设现在已经有多个文档被索引成功，索引目录为：D:\index。我们要对name域（Field）进行查询，代码如下：
+```
+Path path = Paths.get("D:\\index");
+Directory directory = FSDirectory.open(path);
+IndexReader indexReader = DirectoryReader.open(directory);
+IndexSearcher indexSearcher = new IndexSearcher(indexReader);
+ 
+Analyzer nameanalyzer = new StandardAnalyzer();
+QueryParser nameParser = new QueryParser("name", nameanalyzer);
+Query nameQuery = nameParser.parse("詹姆斯");
+ 
+TopDocs topDocs = indexSearcher.search(nameQuery, 2);
+......
+```
+最终生成的是BooleanQuery，“詹姆斯”被分为三个词：詹  姆  斯。（当然也根据实际情况也可以不用分词，比如使用TermQuery）
+
+BooleanQuery为布尔查询，支持四种条件字句：
+- MUST("+")：表示必须匹配该子句，类似于sql中的AND。
+- FILTER("#")：和MUST类似，但是它不参与评分。
+- SHOULD("")：表示可能匹配该字句。类似于sql中的OR，对于没有MUST字句的布尔查询，匹配文档至少需要匹配一个SHOULD字句。
+- MUST_NOT("-")：表示不匹配该字句。类似于sql中的!=。但是要注意的是，布尔查询不能仅仅只包含一个MUST_NOT字句。并且这些字句不会参与文档的评分。
+
+使用这些条件，可以组成很复杂的复合查询。在我们的例子中，会根据分词结果生成三个查询子句，它们之间使用SHOULD关联：
+```
+name:詹 SHOULD name:姆 SHOULD name:斯
+```
+将上述查询语句按照语法树分析：
+```
+            Query
+             |
+         BooleanQuery
+             |
+    +--------+---------+--------+---------
+    |                  |                 |
+SHOULD                SHOULD         SHOULD
+    |                  |                 |
+name:詹               name:姆           name:斯   
+```
+
+
+
+
+## QueryParse.jj解析器
+Lucene QueryParse.jj使用 JavaCC（Java Compiler Compiler）生成的解析器，根据预定义的语法规则将查询字符串分解为语法单元。
+
+Lucene的Token正规表达式定义
 ```
 
 /* ***************** */
@@ -15,13 +142,18 @@ keywords: Lucene
 /* ***************** */
 
 <*> TOKEN : {
+// 数字
   <#_NUM_CHAR:   ["0"-"9"] >
 // every character that follows a backslash is considered as an escaped character
+// 特殊字符
 | <#_ESCAPED_CHAR: "\\" ~[] >
+// Term的起始字符，除了下面列出的其它字符都可以。
 | <#_TERM_START_CHAR: ( ~[ " ", "\t", "\n", "\r", "+", "-", "!", "(", ")", ":", "^",
                            "[", "]", "\"", "{", "}", "~", "*", "?", "\\" ]
                        | <_ESCAPED_CHAR> ) >
+// term                       
 | <#_TERM_CHAR: ( <_TERM_START_CHAR> | <_ESCAPED_CHAR> | "-" | "+" ) >
+// 空格和回车
 | <#_WHITESPACE: ( " " | "\t" | "\n" | "\r") >
 }
 
@@ -41,9 +173,13 @@ keywords: Lucene
 | <STAR:      "*" >
 | <CARAT:     "^" > : Boost
 | <QUOTED:     "\"" (~["\""] | "\\\"")* "\"">
+// term由二部分TERM_START_CHAR + (TERM_CHAR)*来组成
 | <TERM:      <_TERM_START_CHAR> (<_TERM_CHAR>)*  >
+// 词权重 字符串必须以字符~开始，而后是数字。模糊字符串的正规表达式必须以字符~开始。
 | <FUZZY_SLOP:     "~" ( (<_NUM_CHAR>)+ ( "." (<_NUM_CHAR>)+ )? )? >
+// 前缀字符串的正规表达式必须以*结尾。
 | <PREFIXTERM:  ("*") | ( <_TERM_START_CHAR> (<_TERM_CHAR>)* "*" ) >
+// 通配字符串的正规表达式必须包含*或者？字符。
 | <WILDTERM:  (<_TERM_START_CHAR> | [ "*", "?" ]) (<_TERM_CHAR> | ( [ "*", "?" ] ))* >
 | <RANGEIN_START: "[" > : RangeIn
 | <RANGEEX_START: "{" > : RangeEx
@@ -56,163 +192,18 @@ keywords: Lucene
 <RangeIn> TOKEN : {
 <RANGEIN_TO: "TO">
 | <RANGEIN_END: "]"> : DEFAULT
+// 表示用"包起来的字符串，字符"开始，中间由不是"的符号或者连着的这两个符号"组成，字符"结束，
 | <RANGEIN_QUOTED: "\"" (~["\""] | "\\\"")+ "\"">
 | <RANGEIN_GOOP: (~[ " ", "]" ])+ >
 }
 
+// 包含边界的rnage查询
+// 不包含边界的range查询
 <RangeEx> TOKEN : {
 <RANGEEX_TO: "TO">
 | <RANGEEX_END: "}"> : DEFAULT
 | <RANGEEX_QUOTED: "\"" (~["\""] | "\\\"")+ "\"">
 | <RANGEEX_GOOP: (~[ " ", "}" ])+ >
-}
-```
-分别来解释主要token的定义
-- Token: 数字
-```
-<#_NUM_CHAR:   ["0"-"9"] >
-```
-
-- Token: 特殊字符
-```
-_ESCAPED_CHAR::= "\" [ "\", "+", "-", "!", "(", ")", ":", "^", "[", "]", """, "{", "}", "~", "*", "?" ] >
-```
-
-- Token: term的起始字符
-Term的起始字符，除了下面列出的其它字符都可以。
-```
-<#_TERM_START_CHAR: ( ~[ " ", "\t", "\n", "\r", "+", "-", "!", "(", ")", ":", "^", "[", "]", "\"", "{", "}", "~", "*", "?", "\\" ]
-| <_ESCAPED_CHAR> ) >
-```
-
-- Token: term
-```
- <#_TERM_CHAR: ( <_TERM_START_CHAR> | <_ESCAPED_CHAR> | "-" | "+" ) >
-```
-
-- Token:term分词
-term由二部分TERM_START_CHAR + (TERM_CHAR)*来组成
-```
- <TERM:      <_TERM_START_CHAR> (<_TERM_CHAR>)*  >
-```
-
-- Token: 空格和回车
-```
-<#_WHITESPACE: ( " " | "\t" | "\n" | "\r") >
-```
-
-- Token: 词权重：
-字符串必须以字符~开始，而后是数字。
-```
-<FUZZY_SLOP:     "~" ( (<_NUM_CHAR>)+ ( "." (<_NUM_CHAR>)+ )? )? >
-```
-
-- Token: 引号
-表示用"包起来的字符串，字符"开始，中间由不是"的符号或者连着的这两个符号"组成，字符"结束，
-```
-<QUOTED:     "\"" (~["\""] | "\\\"")* "\"">
-```
-
-- Token: 模糊查找
-模糊字符串的正规表达式必须以字符~开始。
-```
-<FUZZY_SLOP:     "~" ( (<_NUM_CHAR>)+ ( "." (<_NUM_CHAR>)+ )? )? >
-```
-
-- Token: 前缀查询
-前缀字符串的正规表达式必须以*结尾。
-```
- <PREFIXTERM:  ("*") | ( <_TERM_START_CHAR> (<_TERM_CHAR>)* "*" ) >
-```
-
-- Token: wildterm
-通配字符串的正规表达式必须包含*或者？字符。
-```
-<WILDTERM:  (<_TERM_START_CHAR> | [ "*", "?" ]) (<_TERM_CHAR> | ( [ "*", "?" ] ))* >
-```
-
-- Token：rangeQuery
-rangeQuery有二种形式：
-
-包含边界的rnage查询：[beging to end]
-不包含边界的range查询：{begin to end}
-
-```
-| <RANGEIN_START: "[" > : RangeIn
-| <RANGEEX_START: "{" > : RangeEx
-
-<RangeIn> TOKEN : {
-<RANGEIN_TO: "TO">
-| <RANGEIN_END: "]"> : DEFAULT
-| <RANGEIN_QUOTED: "\"" (~["\""] | "\\\"")+ "\"">
-| <RANGEIN_GOOP: (~[ " ", "]" ])+ >
-}
-
-<RangeEx> TOKEN : {
-<RANGEEX_TO: "TO">
-| <RANGEEX_END: "}"> : DEFAULT
-| <RANGEEX_QUOTED: "\"" (~["\""] | "\\\"")+ "\"">
-| <RANGEEX_GOOP: (~[ " ", "}" ])+ >
-}
-```
-
-## Lucene语法产生式： 分析与生成Query
-
-- 连接语义
-它的输入是一串token，匹配连接产生式后，它的输入ret会被初始化成CONJ_AND或者CONJ_OR。
-```
-Conjunction::=[ <AND> { ret = CONJ_AND; } | <OR> { ret = CONJ_OR; } ] 
-
-int Conjunction() : {
-  int ret = CONJ_NONE;
-}
-{
-  [
-    <AND> { ret = CONJ_AND; }
-    | <OR>  { ret = CONJ_OR; }
-  ]
-  { return ret; }
-}
-```
-
-- “+ - !”语义
-它的输入是一串token，匹配连接产生式后，它的输入ret会被初始化成MOD_REQ或者MOD_NOT, 分别代表必选与可选项。
-(a b) 会转换成 a OR b
-+a +b =>会转换成a AND b
-```
-Modifiers::=[ <PLUS> { ret = MOD_REQ; } | <MINUS> { ret = MOD_NOT; } | <NOT> { ret = MOD_NOT; } ] 
-
-
-int Modifiers() : {
-  int ret = MOD_NONE;
-}
-{
-  [
-     <PLUS> { ret = MOD_REQ; }
-     | <MINUS> { ret = MOD_NOT; }
-     | <NOT> { ret = MOD_NOT; }
-  ]
-  { return ret; }
-}
-```
-
-## Query语义
-整个Lucene的搜索入口点在TopLevelQuery函数，它最后返回Query类型对象。
-```
-public static void main(String[] args) throws Exception {
-    QueryParser qp = new QueryParser("field",
-                           new org.apache.lucene.analysis.SimpleAnalyzer());
-    Query q = qp.parse(args[0]);
-    System.out.println(q.toString("field"));
-  }
-
-public Query parse(String query) throws ParseException {
-  ReInit(new FastCharStream(new StringReader(query)));
-  try {
- // TopLevelQuery is a Query followed by the end-of-input (EOF)
-    Query res = TopLevelQuery(field);
-    return res!=null ? res : new BooleanQuery();
-  }
 }
 ```
 
@@ -258,12 +249,9 @@ Query Query(String field) :
     }
 }
 ```
-Query产生式分析如下：
+查询方法，接收一个字段名 field 作为参数，并返回一个查询对象。
 
-首先匹配modifier连接符，它可以为空。modifier连接符后面是另一个clause的产生式。可以生成子查询语句。比如，分析“field:abc"
-
-如果后续出现了and/or连接符，需要考虑"field:abc" and "field2:xyz"的查询输入。
-
+它使用 Modifiers 方法获取修饰符（如 "+"、"-"）并调用 Clause 方法解析主要查询子句。然后，它使用 Conjunction 方法获取连词（如 "AND"、"OR"）和 Modifiers 方法再次获取修饰符，并调用 Clause 方法解析其他查询子句。最后，根据解析得到的子句和连词，构建一个复合查询对象（如 BooleanQuery）。
 
 ### Clause语义
 clause产生式使用的LL(2)提前查询了二个token,避免了函数的回朔。多补充一句，JavaCC是自顶而下的非递归算法
@@ -619,5 +607,14 @@ Demo: "+(foo bar) +(baz boo)" 表达成 (foo OR bar) AND (baz OR boo)
 assertQueryEquals("(foo OR bar) AND (baz OR boo)", null,
             "+(foo bar) +(baz boo)");
 ```
+
+
+
+
+
+
+
+
+
 
 

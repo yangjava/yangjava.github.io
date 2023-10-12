@@ -5,7 +5,7 @@ description: none
 keywords: Zookeeper
 ---
 # Zookeeper源码单机启动
-`Zookeeper`可以单机安装启动调试，这种应用模式主要用在测试或demo的情况下，在生产环境下一般不会采用。
+Zookeeper可以单机安装启动调试，这种应用模式主要用在测试或demo的情况下，在生产环境下一般不会采用。
 
 ## 单机模式
 首先，我们先分析一下`Zookeeper`单机模式下，需要实现哪些核心功能。

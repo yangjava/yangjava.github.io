@@ -4,7 +4,7 @@ categories: [SpringBoot]
 description: none
 keywords: SpringBoot
 ---
-# SpringBoot启动注解
+# SpringBoot启动注解@SpringBootApplication
 详细理解SpringBoot的组合注解 @SpringBootApplication。
 
 ## 启动类注解

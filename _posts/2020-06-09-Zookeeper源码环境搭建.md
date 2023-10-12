@@ -5,37 +5,41 @@ description: none
 keywords: Zookeeper
 ---
 # Zookeeper源码环境搭建
-Zookeeper是开源高可用的分布式协同服务，在分布式系统中应用广泛，代码量适中，适合阅读和学习。首先从开发环境的搭建开始介绍。
+Zookeeper是开源高可用的分布式协同服务，在分布式系统中应用广泛，代码量适中，适合阅读和学习。
 
 ## 源码获取
-Zookeeper源码Github地址[https://github.com/apache/zookeeper](https://github.com/apache/zookeeper)
+首先从开发环境的搭建开始介绍。
 
-Zookeeper官网（Apache）[https://zookeeper.apache.org/releases.html](https://zookeeper.apache.org/releases.html)
+Zookeeper源码：Github地址[https://github.com/apache/zookeeper](https://github.com/apache/zookeeper)
+
+Zookeeper官网：（Apache）[https://zookeeper.apache.org/releases.html](https://zookeeper.apache.org/releases.html)
 
 Zookeeper在3.5.5之前使用的是Ant构建，在3.5.5开始使用的是Maven构建。
 
 ## 工程结构
 
-| 名称                                  | 说明                                                         |
-|-------------------------------------| ------------------------------------------------------------ |
-| bin	                                | 包含访问zookeeper服务器和命令行客户端的脚本 |
-| conf                                | 启动zookeeper默认的配置文件目录    |
-| zookeeper-assembly		            | 基础服务打包目录。                                      |
-| zookeeper-client		                 | 客户端，目前只支持c。                                          |
-| zookeeper-compatibility-tests		 | 兼容性测试目录。         |
-| zookeeper-contrib                   | 附加的功能,比如zookeeper可视化客户端工具。                                         |
-| zookeeper-doc		                  | zookeeper文档。|
-| zookeeper-it		                      | 供fatjar使用，进行系统测试依赖的类|
-| zookeeper-jute		                    | zookeeper序列化组件。|
-| zookeeper-metrics-providers			      | 监控相关，目前支持普罗米修斯 prometheus。|
-| zookeeper-recipes			                | zookeeper提供的一些功能例子，包括选举election，lock和queue。|
-| zookeeper-server		                  | zookeeper服务端。|
+| 名称                              | 说明                                          |
+|---------------------------------|---------------------------------------------|
+| bin	                            | 包含访问zookeeper服务器和命令行客户端的脚本                  |
+| conf                            | 启动zookeeper默认的配置文件目录                        |
+| zookeeper-assembly		            | 基础服务打包目录。                                   |
+| zookeeper-client		              | 客户端，目前只支持c。                                 |
+| zookeeper-compatibility-tests		 | 兼容性测试目录。                                    |
+| zookeeper-contrib               | 附加的功能,比如zookeeper可视化客户端工具。                  |
+| zookeeper-doc		                 | zookeeper文档。                                |
+| zookeeper-it		                  | 供fatjar使用，进行系统测试依赖的类                        |
+| zookeeper-jute		                | zookeeper序列化组件。                             |
+| zookeeper-metrics-providers			  | 监控相关，目前支持普罗米修斯 prometheus。                  |
+| zookeeper-recipes			            | zookeeper提供的一些功能例子，包括选举election，lock和queue。 |
+| zookeeper-server		              | zookeeper服务端。                               |
 
 ## 启动服务
 
 ### maven执行install
-
-运行命令：mvn -DskipTests clean install -U
+运行命令 
+```
+mvn -DskipTests clean install -U
+```
 
 构建信息
 ```text
@@ -50,10 +54,9 @@ Zookeeper在3.5.5之前使用的是Ant构建，在3.5.5开始使用的是Maven�
 [INFO] Apache ZooKeeper - Recipes - Queue                                 [jar]
 [INFO] Apache ZooKeeper - Assembly                                        [pom]
 ```
-
 注：建议跳过test，不然需要很长时间，另外有些包是provider的，在打包时候不会打进去，所以需要改下，不然启动的时候会报class not found，这些依赖如下：
 
-```xml
+```
 <dependency>
     <groupId>org.eclipse.jetty</groupId>
     <artifactId>jetty-server</artifactId>
@@ -73,7 +76,6 @@ Zookeeper在3.5.5之前使用的是Ant构建，在3.5.5开始使用的是Maven�
 
 
 ### 启动入口
-
 zk服务端的启动入口是QuorumPeerMain类中的main方法
 
 ```text
