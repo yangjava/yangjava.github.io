@@ -5,7 +5,7 @@ description: none
 keywords: MySQL
 ---
 # MySQL源码Buffer Pool
-Buffer Pool是InnoDB中非常重要的组成部分，也是数据库用户最关心的组件之一。
+Buffer Pool是InnoDB中非常重要的组成部分，也是数据库用户最关心的组件之一。InnoDB 作为一个具有高可靠性和高性能的通用存储引擎也不例外，Buffer Pool就是其用来在内存中缓存数据页面的结构。
 
 ## 背景
 Buffer Pool的基本功能并不复杂，设计实现也比较清晰，但作为一个有几十年历史的工业级数据库产品，不可避免的在代码上融合了越来越多的功能，以及很多细节的优化，从而显得有些臃肿和晦涩。
@@ -34,7 +34,7 @@ Buffer Pool作为一个整体，其对外部使用者提供的其实是非常简
 引用次数（References）：某个Page历史上或者一段时间的历史上被访问的次数。
 只考虑访问距离的FIFO（First In First Out）算法和只考虑引用次数的LFU（Least Frequently Used）算法都被证明在特定序列下会有巨大的缺陷。而好的实用的替换算法会同时考虑这两个因素，其中有我们熟悉的LRU(Least Recently Used)算法以及Clocks算法。本文接下来会详细的介绍InnoDB中的LRU替换算法的实现，除此之外，还会包括如何实现高效的Page查找、内存管理、刷脏策略以及Page的并发访问。
 
-
+## 
 
 
 

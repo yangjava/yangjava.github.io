@@ -1,0 +1,27 @@
+---
+layout: post
+categories: [Spark]
+description: none
+keywords: Spark
+---
+# SparkSQL逻辑计划Tungsten
+Tungsten是开源社区专门用于提升Spark性能的计划。因为Spark是用Scala语言开发的，所以最终运行在JVM上的代码存在着各方面的限制和弊端（例如GC上的overhead），使得Spark在性能上有很大的提升空间。基于此考虑，Tungsten计划应运而生，旨在从内存和CPU层面对Spark的性能进行优化。
+
+## Tungsten优化
+Tungsten的优化主要包括3个方面：内存管理机制（Memorymanagementand binaryprocessing）、缓存敏感计算（Cache-aware computation）和动态代码生成（Codegeneration）。官方技术文档已经对这3个方面的优化进行了介绍，本章将从具体的实现细节来阐述其原理。在一定程度上，这些技术具有广泛的通用性，对于目前各种分布式计算框架都有着借鉴意义。
+
+## 内存管理与二进制处理
+作为一个基于内存的分布式计算引擎，Spark系统的重要特点在于多个任务之间的数据通信可以直接通过内存而避免落盘，大大提高了执行效率，因此内存管理在Spark系统中扮演着非常重要的角色。Tungsten设计了一套内存管理机制，Spark可以直接操作二进制数据而不是JVM对象，使得内存使用效率大幅提升。
+
+本节先详细介绍Spark内存管理的基础，然后分析Tungsten的内存管理机制，以及如何基于新的内存管理机制实现一些常用的操作。
+
+### Spark内存管理基础
+在分析Tungsten内存优化之前，有必要了解Spark在内存管理方面的基础原理。回顾Spark的计算模型，当应用程序被提交后，集群会启动Driver和Executor两种类型的服务进程，其中Driver为主进程，Executor是计算单元（Task）的集合。
+
+从本质上讲，Driver和Executor都是JVM进程，运行在Worker（Standalone模式）或Container（YARN模式）中。因此，Spark内存管理会涉及Driver和Executor这两种进程中内存的申请和回收等操作。如图9.1所示，Driver端会维护Spark的上下文环境（SparkSession/SparkContext），同时Driver和每个Executor都有自己的内存空间，内存管理则由MemoryManager统一管理。同一个Executor内的任务都会调用MemoryManager接口中定义的方法来完成内存申请或释放等操作。
+
+Spark为数据存储和计算执行提供了统一的内存管理接口（MemoryManager）。在具体实现上，在Driver端创建MemoryManager的过程如以下代码所示。MemoryManager包括StaticMemoryManager和UnifiedMemoryManager两种。
+
+在Spark 1.6版本之前，Spark采用的是静态内存管理（StaticMemoryManager）方式。从1.6版本开始，Spark默认采用统一内存管理（UnifiedMemoryManager）方式，但静态内存管理方式仍然保留（通过spark.memory.useLegacyMode参数配置）。相比静态内存管理方式，统一内存管理方式中存储内存和计算内存能够共享同一个空间，并且可以动态地使用彼此的空闲区域。
+
+本节后续内容的安排如下，首先介绍Spark内存管理中的一些基本概念，并分析Memory-Manager的两种实现机制（重点是UnifiedMemoryManager），然后在此基础上展开分析存储和计算执行的内存管理实现。
