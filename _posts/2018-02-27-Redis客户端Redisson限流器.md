@@ -1,32 +1,18 @@
 ---
 layout: post
-categories: Redis
+categories: [Redis]
 description: none
 keywords: Redis
 ---
-# Redis开发实战
-Redisson是Redis官方推荐的Java版的Redis客户端。它提供了使用Redis的最简单和最便捷的方法。Redisson的宗旨是促进使用者对Redis的关注分离（Separation of Concern），从而让使用者能够将精力更集中地放在处理业务逻辑上。
-
-## 概述
-官网解释如下：Redisson是一个在Redis的基础上实现的Java驻内存数据网格（In-Memory Data Grid）。它不仅提供了一系列的分布式的Java常用对象，还提供了许多分布式服务。其中包括(BitSet, Set, Multimap, SortedSet, Map, List, Queue, BlockingQueue, Deque, BlockingDeque, Semaphore, Lock, AtomicLong, CountDownLatch, Publish / Subscribe, Bloom filter, Remote service, Spring cache, Executor service, Live Object service, Scheduler service) Redisson提供了使用Redis的最简单和最便捷的方法。Redisson的宗旨是促进使用者对Redis的关注分离（Separation of Concern），从而让使用者能够将精力更集中地放在处理业务逻辑上。
-
-## 用法
-官网：wiki地址    https://github.com/redisson/redisson/wiki/%E7%9B%AE%E5%BD%95
-
-```xml
-        <dependency>
-            <groupId>org.redisson</groupId>
-            <artifactId>redisson</artifactId>
-            <version>3.15.0</version>
-        </dependency>
-```
-
-## 简单的使用
-
-## 限流器
+# Redis客户端Redisson限流器
 基于Redis的分布式限流器RateLimiter可以用来在分布式环境下现在请求方的调用频率。既适用于不同Redisson实例下的多线程限流，也适用于相同Redisson实例下的多线程限流。
 
-RateLimter主要作用就是可以限制调用接口的次数。主要原理就是调用接口之前，需要拥有指定个令牌。限流器每秒会产生X个令牌放入令牌桶，调用接口需要去令牌桶里面拿令牌。如果令牌被其它请求拿完了，那么自然而然，当前请求就调用不到指定的接口。
+## 限流器
+RateLimiter主要作用就是可以限制调用接口的次数。主要原理就是调用接口之前，需要拥有指定个令牌。限流器每秒会产生X个令牌放入令牌桶，调用接口需要去令牌桶里面拿令牌。如果令牌被其它请求拿完了，那么自然而然，当前请求就调用不到指定的接口。
+
+主要使用业务场景
+- 单机或分布式情况下的缓存击穿
+- 接口需要限制调用次数
 ```
 RRateLimiter rateLimiter = redisson.getRateLimiter("myRateLimiter");
 // 初始化
@@ -37,8 +23,93 @@ if(rateLimiter.tryAcquire(1)){
     //TODO:Do something 
 }
 ```
+## 限流器使用
 
-### RRateLimiter的实现
+```java
+
+import com.qjdchina.common.monitor.AppMonitor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.*;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
+
+@Component
+@Scope("prototype")
+@Slf4j
+public class LimitService {
+
+    private static  final String PREFIX="qps_limit_";
+    @Resource
+    private RedissonClient redissonClient;
+
+    // 限流实现
+    public  Boolean limitQps(String uidKey,long rate, long rateInterval) {
+        String key = PREFIX + uidKey;
+        boolean isPermit = true;
+        try {
+            //  声明一个限流器
+            RRateLimiter rateLimiter = redissonClient.getRateLimiter(key);
+            // 如果存在限流器
+            if(rateLimiter.isExists()){
+                RateLimiterConfig config = rateLimiter.getConfig();
+                // 如果限流器和Nacos配置不一致，重新构建限流器
+                if(config.getRate()!=rate){
+                    rateLimiter.setRate(RateType.OVERALL, rate, rateInterval, RateIntervalUnit.SECONDS);
+                }
+            }else{
+                // 不存在，初始化限流器。设置速率，1秒中产生limiterConfig.getQps().getIp()个令牌
+                rateLimiter.trySetRate(RateType.OVERALL, rate, rateInterval, RateIntervalUnit.SECONDS);
+            }
+            // 试图获取一个令牌，获取到返回true
+            isPermit = rateLimiter.tryAcquire();
+            // 不通过打印日志
+//            log.info("限流器Key:{},流量限制:{},可用流量:{},是否通过:{}",key,rate,rateLimiter.availablePermits(),isPermit);
+        } catch (Exception e) {
+            AppMonitor.exception("limitQps");
+            log.info("QpsFilter Exception:{}", key, e);
+        }
+        return isPermit;
+    }
+}
+
+```
+
+## RRateLimiter的实现
+getRateLimiter
+```
+// 声明一个限流器 名称 叫key
+redissonClient.getRateLimiter(key)
+```
+
+trySetRate
+trySetRate方法跟进去底层实现如下：
+```
+@Override
+    public RFuture<Boolean> trySetRateAsync(RateType type, long rate, long rateInterval, RateIntervalUnit unit) {
+        return commandExecutor.evalWriteAsync(getName(), LongCodec.INSTANCE, RedisCommands.EVAL_BOOLEAN,
+                "redis.call('hsetnx', KEYS[1], 'rate', ARGV[1]);"
+              + "redis.call('hsetnx', KEYS[1], 'interval', ARGV[2]);"
+              + "return redis.call('hsetnx', KEYS[1], 'type', ARGV[3]);",
+                Collections.<Object>singletonList(getName()), rate, unit.toMillis(rateInterval), type.ordinal());
+    }
+```
+举个例子，更容易理解：
+
+比如下面这段代码，5秒中产生3个令牌，并且所有实例共享（RateType.OVERALL所有实例共享、RateType.CLIENT单实例端共享）
+```
+trySetRate(RateType.OVERALL, 3, 5, RateIntervalUnit.SECONDS);
+```
+那么redis中就会设置3个参数：
+```
+hsetnx,key,rate,3
+
+hsetnx,key,interval,5
+
+hsetnx,key,type,0
+```
+
 接下来我们顺着tryAcquire()方法来看下它的实现方式，在RedissonRateLimiter类中，我们可以看到最底层的tryAcquireAsync()方法。
 ```
     private <T> RFuture<T> tryAcquireAsync(RedisCommand<T> command, Long value) {
@@ -54,14 +125,18 @@ if(rateLimiter.tryAcquire(1)){
     }
 ```
 映入眼帘的就是一大段lua代码，其实这段Lua代码就是限流实现的核心，我把这段lua代码摘出来，并加了一些注释，我们来详细看下。
-```
+```lua
 local rate = redis.call("hget", KEYS[1], "rate")  # 100 
 local interval = redis.call("hget", KEYS[1], "interval")  # 3600000
 local type = redis.call("hget", KEYS[1], "type")  # 0
 assert(rate ~= false and interval ~= false and type ~= false, "RateLimiter is not initialized")
+# rate、interval、type，如果这3个值没有设置，直接返回rateLimiter没有被初始化。
+
+# 声明一个变量叫valueName 值为KEYS[2],KEYS[2]对应的值是getValueName()方法，getValueName()返回的就是上面第一步getRateLimiter我们设置的key；如果type=1，表示全局共享，那么valueName 的值改为取KEYS[3]，KEYS[3]对应的值为getClientValueName()，
 local valueName = KEYS[2]      # {xindoo.limiter}:value 用来存储剩余许可数量
 local permitsName = KEYS[4]    # {xindoo.limiter}:permits 记录了所有许可发出的时间戳  
 # 如果是单实例模式，name信息后面就需要拼接上clientId来区分出来了
+# 这个getId()是每个客户端初始化的时候生成的UUID，即每个客户端的getId是唯一的，这也就验证了trySetRate方法中RateType.ALL与RateType.PER_CLIENT的作用。
 if type == "1" then
     valueName = KEYS[3]        # {xindoo.limiter}:value:b474c7d5-862c-4be2-9656-f4011c269d54
     permitsName = KEYS[5]      # {xindoo.limiter}:permits:b474c7d5-862c-4be2-9656-f4011c269d54
@@ -123,22 +198,14 @@ return res
 
 那Redis是如何保证在分布式下这些限流信息数据的一致性的？答案是不需要保证，在这个场景下，信息天然就是一致性的。原因是Redis的单进程数据处理模型，在同一个Key下，所有的eval请求都是串行的，所有不需要考虑数据并发操作的问题。在这里，Redisson也使用了HashTag，保证所有的限流信息都存储在同一个Redis实例上。
 
+redission分布式限流采用令牌桶思想和固定时间窗口，trySetRate方法设置桶的大小，利用redis key过期机制达到时间窗口目的，控制固定时间窗口内允许通过的请求量。
 
-## RedisClient
-```
-@Configuration
-public class MyRedissonConfig {
 
-    //注册RedissonClient对象
-    @Bean(destroyMethod="shutdown")
-    RedissonClient redisson() throws IOException {
-        Config config = new Config();
-        config.useSingleServer().setAddress("redis://127.0.0.1:6379");
-        RedissonClient redissonClient = Redisson.create(config);
-        return redissonClient;
-    }
-}
-```
+
+
+
+
+
 
 
 

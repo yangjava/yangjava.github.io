@@ -45,8 +45,6 @@ APIExtensionsServer扩展服务和AggregatorServer聚合服务都是可以在不
 - 启动HTTP服务。
 - 启动HTTPS服务。
 
-
-
 apiserver 提供了对各类资源对象，如 Pod、Service、Deployment、CRD 等的增删改查，以及 Watch 的 API 接口，是整个集群的操作入口。
 
 ## 简介

@@ -1,40 +1,21 @@
 ---
 layout: post
-categories: Kubernetes
+categories: [Kubernetes]
 description: none
 keywords: Kubernetes
 ---
+# Kubernetes源码deployment
+部署控制器（Deployment Controller）：负责pod的滚动更新、回滚以及支持副本的水平扩容等。deployment 是 kubernetes 中用来部署无状态应用的一个对象，也是最常用的一种对象。
 
-
-
-
-在前面的文章中已经分析过 kubernetes 中多个组件的源码了，本章会继续解读 kube-controller-manager 源码，kube-controller-manager  中有数十个 controller，本文会分析最常用到的 deployment controller。
-
-
-
-### deployment 的功能
-
-deployment 是 kubernetes 中用来部署无状态应用的一个对象，也是最常用的一种对象。
-
-
-
-#### deployment、replicaSet 和 pod 之间的关系
-
+## deployment 的基本功能
 deployment 的本质是控制 replicaSet，replicaSet 会控制 pod，然后由 controller 驱动各个对象达到期望状态。
 
-![](http://cdn.tianfeiyu.com/deployment.png)
-
 DeploymentController 是 Deployment 资源的控制器，其通过 DeploymentInformer、ReplicaSetInformer、PodInformer 监听三种资源，当三种资源变化时会触发 DeploymentController 中的 syncLoop 操作。
-
-
-
-#### deployment 的基本功能
 
 下面通过命令行操作展示一下 deployment 的基本功能。
 
 以下是 deployment 的一个示例文件：
-
-```
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -63,9 +44,7 @@ spec:
         ports:
         - containerPort: 80
 ```
-
-##### 创建
-
+创建Deployment
 ```
 $ kubectl create -f nginx-dep.yaml --record
 
@@ -77,17 +56,13 @@ $ kubectl get rs
 NAME                          DESIRED   CURRENT   READY   AGE
 nginx-deployment-68b649bd8b   20        20        20      22h
 ```
-
-##### 滚动更新
-
+滚动更新
 ```
 $ kubectl set image deploy/nginx-deployment nginx-deployment=nginx:1.9.3
 
 $ kubectl rollout status deployment/nginx-deployment
 ```
-
-##### 回滚
-
+回滚
 ```
 // 查看历史版本
 $ kubectl rollout history deployment/nginx-deployment
@@ -99,52 +74,33 @@ REVISION  CHANGE-CAUSE
 // 指定版本回滚
 $ kubectl rollout undo deployment/nginx-deployment --to-revision=2
 ```
-
-##### 扩缩容
-
+扩缩容
 ```
 $ kubectl scale deployment nginx-deployment --replicas 10
 deployment.extensions/nginx-deployment scaled
 ```
-
-##### 暂停与恢复
-
+暂停与恢复
 ```
 $ kubectl rollout pause deployment/nginx-deployment
 $ kubectl rollout resume deploy nginx-deployment
 ```
-
-##### 删除
-
+删除
 ```
 $ kubectl delete deployment nginx-deployment
 ```
-
 以上是 deployment 的几个常用操作，下面会结合源码分析这几个操作都是如何实现的。
 
-
-
-### deployment controller 源码分析
-
-
-
-> kubernetes 版本：v1.16
+## deployment controller 源码分析
+kubernetes 版本：v1.16
 
 在控制器模式下，每次操作对象都会触发一次事件，然后 controller 会进行一次 syncLoop 操作，controller 是通过 informer 监听事件以及进行 ListWatch 操作的，关于 informer 的基础知识可以参考以前写的文章。
 
-
-
-#### deployment controller 启动流程
-
+## deployment controller 启动流程
 kube-controller-manager 中所有 controller 的启动都是在 `Run` 方法中完成初始化并启动的。在 `Run` 中会调用 run 函数，run 函数的主要流程有：
-
 - 1、调用 `NewControllerInitializers` 初始化所有 controller
 - 2、调用 `StartControllers` 启动所有 controller
 
-
-
 `k8s.io/kubernetes/cmd/kube-controller-manager/app/controllermanager.go:158`
-
 ```
 func Run(c *config.CompletedConfig, stopCh <-chan struct{}) error {
     ......
@@ -161,15 +117,9 @@ func Run(c *config.CompletedConfig, stopCh <-chan struct{}) error {
     ......
 }
 ```
-
-
-
 `NewControllerInitializers`  中定义了所有的 controller 以及 start controller 对应的方法。deployment controller 对应的启动方法是 `startDeploymentController`。
 
-
-
 `k8s.io/kubernetes/cmd/kube-controller-manager/app/controllermanager.go:373`
-
 ```
 func NewControllerInitializers(loopMode ControllerLoopMode) map[string]InitFunc {
     controllers := map[string]InitFunc{}
@@ -179,16 +129,11 @@ func NewControllerInitializers(loopMode ControllerLoopMode) map[string]InitFunc 
     ......
 }
 ```
-
-
-
 在`startDeploymentController` 中对 deploymentController 进行了初始化，并执行 `dc.Run()` 方法启动了 controller。
-
-
 
 `k8s.io/kubernetes/cmd/kube-controller-manager/app/apps.go:82`
 
-```
+```go
 func startDeploymentController(ctx ControllerContext) (http.Handler, bool, error) {
     ......
 
@@ -208,8 +153,6 @@ func startDeploymentController(ctx ControllerContext) (http.Handler, bool, error
 ```
 
 `ctx.ComponentConfig.DeploymentController.ConcurrentDeploymentSyncs` 指定了 deployment controller 中工作的 goroutine 数量，默认值为 5，即会启动五个 goroutine 从 workqueue 中取出 object 并进行 sync 操作，该参数的默认值定义在 `k8s.io/kubernetes/pkg/controller/deployment/config/v1alpha1/defaults.go`  中。
-
-
 
 `dc.Run` 方法会执行 ListWatch 操作并根据对应的事件执行 syncLoop。
 
@@ -233,11 +176,7 @@ func (dc *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
     <-stopCh
 }
 ```
-
-
-
 `dc.worker` 会调用 `syncHandler` 进行 sync 操作。
-
 ```
 func (dc *DeploymentController) worker() {
     for dc.processNextWorkItem() {
@@ -260,7 +199,6 @@ func (dc *DeploymentController) processNextWorkItem() bool {
 ```
 
 `syncHandler` 是 controller 的核心逻辑，下面会进行详细说明。至此，对于 deployment controller 的启动流程已经分析完，再来看一下 deployment controller 启动过程中的整个调用链，如下所示：
-
  ```
 Run() --> run() --> NewControllerInitializers() --> StartControllers() --> startDeploymentController() --> deployment.NewDeploymentController() --> deployment.Run()
 --> deployment.syncDeployment()

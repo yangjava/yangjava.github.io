@@ -78,7 +78,7 @@ spring:
           predicates:
             - Path=/hello
 ```
-当你访问http://localhost:9000/hello 的时候就会转发到http://localhost:8080/hello 。
+我们当前网关服务是gateway,端口号是localhost:9000。当你访问http://localhost:9000/hello 的时候就会转发到http://localhost:8080/hello 。
 
 如果我们要支持多级Path，配置方式跟Zuul中一样，在后面加上两个*号即可，比如：
 ```yaml
