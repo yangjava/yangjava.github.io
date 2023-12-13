@@ -7,6 +7,44 @@ keywords: Lucene
 # Lucene源码IndexWriter
 我们将深入IndexWriter内部，来探索其内核实现。
 
+## 创建IndexWriter对象
+```
+IndexWriter indexWriter = new IndexWriter(directory, config);
+```
+IndexWriter对象主要包含以下几方面的信息：
+
+### 用于索引文档
+- Directory directory;  指向索引文件夹
+- SegmentInfos segmentInfos = new SegmentInfos(); 保存段信息，大家会发现，和segments_N中的信息几乎一一对应。
+- IndexFileDeleter deleter; 此对象不是用来删除文档的，而是用来管理索引文件的。
+- Lock writeLock; 每一个索引文件夹只能打开一个IndexWriter，所以需要锁。
+
+### 用于合并段，在合并段的文章中将详细描述
+```
+  // Holds all SegmentInfo instances currently involved in
+  // merges
+  private final HashSet<SegmentCommitInfo> mergingSegments = new HashSet<>();
+  private final MergeScheduler mergeScheduler;
+  private final Set<SegmentMerger> runningAddIndexesMerges = new HashSet<>();
+  private final LinkedList<MergePolicy.OneMerge> pendingMerges = new LinkedList<>();
+  private final Set<MergePolicy.OneMerge> runningMerges = new HashSet<>();
+  private final List<MergePolicy.OneMerge> mergeExceptions = new ArrayList<>();
+  private long mergeGen;
+  private Merges merges = new Merges();
+```
+
+### 为保持索引完整性，一致性和事务性
+```
+当IndexWriter对索引进行了添加，删除文档操作后，可以调用commit将修改提交到文件中去，也可以调用rollback取消从上次commit到此时的修改。
+  private List<SegmentCommitInfo> rollbackSegments;      // list of segmentInfo we will fallback to if the commit fails
+
+  private volatile SegmentInfos pendingCommit;            // set when a commit is pending (after prepareCommit() & before commit())
+```
+
+
+
+
+
 ### 并发模型
 IndexWriter提供的核心接口都是线程安全的，并且内部做了特殊的并发优化来优化多线程写入的性能。IndexWriter内部为每个线程都会单独开辟一个空间来写入，这块空间由DocumentsWriterPerThread来控制。
 
@@ -26,7 +64,7 @@ IndexWriter提供的核心接口都是线程安全的，并且内部做了特殊
 ## add & update
 add接口用于新增文档，update接口用于更新文档。但Lucene的update和数据库的update不太一样。数据库的更新是查询后更新，Lucene的更新是查询后删除再新增，不支持更新文档内部分列。流程是先delete by term，后add document。
 
-IndexWriter提供的add和update接口，都会映射到DocumentsWriter的udpate接口，看下接口定义：
+IndexWriter提供的add和update接口，都会映射到DocumentsWriter的update接口，看下接口定义：
 ```
 long updateDocument(final Iterable<? extends IndexableField> doc, final Analyzer analyzer,
     final Term delTerm) throws IOException, AbortingException
