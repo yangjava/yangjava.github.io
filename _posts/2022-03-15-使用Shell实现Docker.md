@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Docker
+categories: [Docker]
 description: none
 keywords: Docker
 ---
@@ -10,56 +10,23 @@ keywords: Docker
 ## Namespace
 Linux Namespace是Linux提供的一种内核级别环境隔离的方法。学习过Linux的同学应该对chroot命令比较熟悉（通过修改根目录把用户限制在一个特定目录下），chroot提供了一种简单的隔离模式：chroot内部的文件系统无法访问外部的内容。Linux Namespace在此基础上，提供了对UTS、IPC、mount、PID、network、User等的隔离机制。Namespace是对全局系统资源的一种封装隔离，使得处于不同namespace的进程拥有独立的全局系统资源，改变一个namespace中的系统资源只会影响当前namespace里的进程，对其他namespace中的进程没有影响。
 
-
-
-
-一、目的
-
-
-
+### 目的
 如果本身对虚拟化的发展没有深入的了解，那么很难对这几个概念有深入的理解，本文的目的就是通过在操作系统中以交互式的方式去理解，Cgroup/Namespace/Rootfs到底实现了什么，能做到哪些事情，然后通过shell这种直观的命令行方式把我们的理解组合起来，去模仿Docker实现一个缩减的版本。
 
+### 技术拆解
 
+### Namespace
 
-二、技术拆解
-
-
-
-2.1 Namespace
-
-
-
-2.1.1 简介
-
-
-
-
-
-
+### 简介
 Linux Namespace有如下种类：
 
+Namespace相关系统调用
+namespace相关的系统调用有3个，分别是clone(),setns(),unshare()。
+- clone: 创建一个新的进程并把这个新进程放到新的namespace中
+- setns: 将当前进程加入到已有的namespace中
+- unshare: 使当前进程退出指定类型的namespace，并加入到新创建的namespace中
 
-
-
-
-2.1.2 Namespace相关系统调用
-
-
-
-amespace相关的系统调用有3个，分别是clone(),setns(),unshare()。
-
-clone: 创建一个新的进程并把这个新进程放到新的namespace中
-
-setns: 将当前进程加入到已有的namespace中
-
-unshare: 使当前进程退出指定类型的namespace，并加入到新创建的namespace中
-
-
-
-2.1.3 查看进程所属Namespace
-
-
-
+### 查看进程所属Namespace
 上面的概念都比较抽象，我们来看看在Linux系统中怎么样去get namespace。
 
 

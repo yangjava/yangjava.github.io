@@ -1,6 +1,6 @@
 ---
 layout: post
-categories: Docker
+categories: [Docker]
 description: none
 keywords: Docker
 ---

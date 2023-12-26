@@ -212,7 +212,7 @@ public Mono<Void> filter(ServerWebExchange exchange) {
 ```
 FilteringWebHandler#handle方法首先获取请求对应的路由的过滤器和全局过滤器，将两部分组合；然后对过滤器列表排序，AnnotationAwareOrderComparator是OrderComparator的子类，支持Spring的Ordered接口的优先级排序；最后按照优先级，生成过滤器链，对该请求进行过滤处理。这里过滤器链是通过内部静态类DefaultGatewayFilterChain实现，该类实现了GatewayFilterChain接口，用于按优先级过滤。
 
-## 路由定义定位器
+
 
 
 
