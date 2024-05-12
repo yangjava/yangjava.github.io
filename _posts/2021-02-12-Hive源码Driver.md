@@ -43,7 +43,7 @@ HQL编译为MR任务流程介绍：
 - $HIVE_HOME/bin/hive -e “hql”；
 - $HIVE_HOME/bin/hive -f hive.sql；
 - 先开启 hivesever2 服务端，然后通过 JDBC 方式连接远程提交 HQL。
-可 以 知 道 我 们 执 行 HQL，主 要 依 赖 于 $HIVE_HOME/bin/hive 和 $HIVE_HOME/bin/。hivesever2 两种脚本来实现提交HQL，而在这两个脚本中，最终启动的 JAVA 程序的主类为“org.apache.hadoop.hive.cli.CliDriver”，所以其实 Hive 程序的入口就是“CliDriver”这个类。
+可 以 知 道 我 们 执 行 HQL，主 要 依 赖 于 $HIVE_HOME/bin/hive 和 $HIVE_HOME/bin/hivesever2 两种脚本来实现提交HQL，而在这两个脚本中，最终启动的 JAVA 程序的主类为“org.apache.hadoop.hive.cli.CliDriver”，所以其实 Hive 程序的入口就是“CliDriver”这个类。
 
 首先可以看到在判断 hive 的客户端模式，是 cli 还是 beeline
 ```
